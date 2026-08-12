@@ -212,7 +212,7 @@ Deno.serve(async (req: Request) => {
 
       const liked = rows.filter((h) => h.rating === 'positive').slice(0, 4)
         .map((h) => namesOf(h.item_ids || [])).filter(Boolean)
-      if (liked.length > 0) lines.push(`Combinaciones que le gustaron antes (puedes inspirarte en el estilo): ${liked.join(' | ')}.`)
+      if (liked.length > 0) lines.push(`Le gustaron antes estos estilos (NO los repitas tal cual, son solo referencia de que tipo de combinacion/paleta le funciona, el outfit de hoy debe ser diferente): ${liked.join(' | ')}.`)
 
       const negativeRows = rows.filter((h) => h.rating === 'negative').slice(0, 4)
 
@@ -249,9 +249,15 @@ Deno.serve(async (req: Request) => {
     // muy pocas prendas (armario pequeño), no excluimos nada — ahí ya toca
     // confiar en la instrucción de texto, repetir algo es preferible a un
     // outfit incompleto.
+    // Antes solo se excluia el ultimo dia. Si el armario es pequeño, eso deja
+    // que el mismo outfit vuelva a salir cada 2 dias en cuanto "gana turno"
+    // de nuevo (sobre todo si encima el usuario le da 👍, que reforzaba
+    // devolverlo como "inspiracion"). Ahora se excluyen las ultimas 3
+    // sugerencias por ocasion (le haya gustado o no), asi hace falta pasar
+    // por mas variedad del armario antes de que algo se repita.
     function lastItemIdsFor(occasion: DailyOccasion): string[] {
-      const rows = (history ?? []).filter((h) => h.occasion === occasion)
-      return rows[0]?.item_ids ?? []
+      const rows = (history ?? []).filter((h) => h.occasion === occasion).slice(0, 3)
+      return [...new Set(rows.flatMap((r) => r.item_ids ?? []))]
     }
     function poolExcluding(pool: typeof inventory, excludeIds: string[], minRemaining: number) {
       if (excludeIds.length === 0) return pool

@@ -308,7 +308,10 @@ Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
+        // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
+        model: 'openai/gpt-oss-120b',
+        reasoning_effort: 'low', // solo necesitamos el JSON, no razonamiento largo
         messages: [
           {
             role: 'system',

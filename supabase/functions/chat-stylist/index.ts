@@ -131,7 +131,10 @@ ${wardrobeLines || 'Vacio.'}`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
+        // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
+        model: 'openai/gpt-oss-120b',
+        reasoning_effort: 'low',
         messages,
         max_tokens: 250,
         temperature: 0.65,

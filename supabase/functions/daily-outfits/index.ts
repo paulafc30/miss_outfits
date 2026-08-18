@@ -265,7 +265,7 @@ Deno.serve(async (req: Request) => {
       return filtered.length >= minRemaining ? filtered : pool
     }
 
-    const nonGymStructureRule = `DEBE incluir: o bien 1 "top" + 1 "bottom", o bien 1 "fullbody" (vestido/mono). Opcional: 1 "outerwear" si el clima lo requiere, y maximo 1 "footwear" y 1 "accessory". PROHIBIDO mezclar swimwear. PROHIBIDO outfit sin parte de abajo.`
+    const nonGymStructureRule = `DEBE incluir: o bien 1 "top" + 1 "bottom", o bien 1 "fullbody" (vestido/mono). Opcional: 1 "outerwear" si el clima lo requiere, y maximo 1 "footwear" y 1 "accessory". PROHIBIDO mezclar swimwear. PROHIBIDO outfit sin parte de abajo (bottom o fullbody): un "top" solo con "accessory" (anillo, bolso, collar...) NO es un outfit valido, siempre falta la parte de abajo.`
     const gymStructureRule = `DEBE incluir: 1 prenda deportiva (tipo sportswear) + opcionalmente calzado deportivo. NO uses top/bottom normales ni accesorios innecesarios.`
 
     const sections: string[] = []
@@ -341,9 +341,22 @@ Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma
     // depende de que el usuario nombre sus categorias de forma "estandar"
     // (p.ej. "Pantalones"). Si sus categorias tienen otros nombres, la
     // deteccion de tipo falla y el outfit se descartaba silenciosamente
-    // SIEMPRE, dejando ese hueco vacio dia tras dia. Ahora solo exigimos
-    // que tenga al menos 2 prendas validas del armario; la estructura
-    // (top+bottom, etc.) ya se le pide a la IA en el prompt.
+    // SIEMPRE, dejando ese hueco vacio dia tras dia.
+    //
+    // Ahora exigimos al menos 2 prendas validas, MAS (si el armario tiene
+    // prendas detectables como "bottom"/"fullbody" para esa ocasion) que el
+    // outfit realmente incluya una: sin esto la IA a veces sugiere solo un
+    // top + un accesorio (p.ej. camiseta + anillo), que no es un outfit
+    // completo. El check solo se aplica cuando SABEMOS que hay parte de
+    // abajo disponible en el armario, para no repetir el bug de antes con
+    // categorias no estandar.
+    function itemType(id: string): string {
+      const c = clothesMap[id]
+      const cat = c?.category_id ? catMap[c.category_id] : null
+      return cat?.type || 'other'
+    }
+    const nonGymHasBottomOption = nonGymItems.some((i) => i.tipo === 'bottom' || i.tipo === 'fullbody')
+
     const rowsToInsert: any[] = []
     for (const occasion of missing) {
       const outfit = generated.find((o: any) => o.occasion === occasion)
@@ -351,6 +364,14 @@ Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma
         ? outfit.item_ids.filter((id: string) => clothesMap[id])
         : []
       if (!outfit || validIds.length < 2) continue
+
+      if (occasion !== 'gym' && nonGymHasBottomOption) {
+        const hasBottom = validIds.some((id: string) => {
+          const t = itemType(id)
+          return t === 'bottom' || t === 'fullbody'
+        })
+        if (!hasBottom) continue
+      }
 
       rowsToInsert.push({
         user_id: user.id,

@@ -297,8 +297,8 @@ OTRAS REGLAS:
 - 3-5 prendas por outfit maximo
 - El "reason" explica brevemente por que combina bien y es apropiado (max 60 palabras)
 
-Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma exacta:
-[{"occasion":"casual","name":"nombre creativo","item_ids":["uuid1","uuid2"],"reason":"..."}]
+Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con esta forma exacta:
+{"outfits":[{"occasion":"casual","name":"nombre creativo","item_ids":["uuid1","uuid2"],"reason":"..."}]}
 (incluye solo las ocasiones pedidas: ${missing.join(', ')})`
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -312,14 +312,19 @@ Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma
         // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
         model: 'openai/gpt-oss-120b',
         reasoning_effort: 'low', // solo necesitamos el JSON, no razonamiento largo
+        // gpt-oss es un modelo "razonador": sin forzar json_object a veces
+        // mete texto de razonamiento antes/despues del JSON (o lo corta),
+        // lo que rompía el parseo manual con regex. json_object hace que
+        // el propio Groq garantice una salida JSON valida.
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: 'Eres un estilista de moda. Respondes SOLO con JSON valido, sin texto extra, sin bloques de codigo markdown.',
+            content: 'Eres un estilista de moda. Respondes SOLO con un objeto JSON valido, sin texto extra, sin bloques de codigo markdown.',
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.7,
       }),
     })
@@ -330,10 +335,14 @@ Responde UNICAMENTE con JSON valido, sin texto extra ni markdown, con esta forma
     }
 
     const groqData = await groqRes.json()
-    const rawText = groqData.choices?.[0]?.message?.content ?? '[]'
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) throw new Error('La IA no devolvio JSON valido')
-    const generated = JSON.parse(jsonMatch[0])
+    const rawText = groqData.choices?.[0]?.message?.content ?? '{"outfits":[]}'
+    let generated: any[]
+    try {
+      const parsed = JSON.parse(rawText)
+      generated = Array.isArray(parsed) ? parsed : (parsed.outfits ?? [])
+    } catch {
+      throw new Error(`La IA no devolvio JSON valido: ${rawText.slice(0, 200)}`)
+    }
 
     // Validacion + preparar filas a insertar.
     // Nota: antes se descartaba el outfit entero si no encontraba un tipo

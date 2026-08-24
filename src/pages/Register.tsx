@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { AuthLayout } from './Login'
 import PasswordInput from '@/components/shared/PasswordInput'
+import GoogleSignInButton from '@/components/shared/GoogleSignInButton'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -55,6 +56,8 @@ export default function Register() {
         <p className="text-sm text-center text-muted pt-1">
           ¿Ya tienes cuenta? <Link to="/login" className="text-brand-700 font-semibold hover:underline">Entra</Link>
         </p>
+
+        <GoogleSignInButton />
       </form>
     </AuthLayout>
   )

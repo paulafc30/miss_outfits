@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import HangerIcon from '@/components/shared/HangerIcon'
 import PasswordInput from '@/components/shared/PasswordInput'
+import GoogleSignInButton from '@/components/shared/GoogleSignInButton'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -53,6 +54,8 @@ export default function Login() {
           <Link to="/recuperar" className="text-muted hover:text-brand-700 transition">¿Olvidaste tu contraseña?</Link>
           <Link to="/registro" className="text-brand-700 font-semibold hover:underline">Crear cuenta</Link>
         </div>
+
+        <GoogleSignInButton />
       </form>
     </AuthLayout>
   )

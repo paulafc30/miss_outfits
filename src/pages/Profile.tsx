@@ -221,7 +221,7 @@ export default function Profile() {
 
       <SettingsSection title="Acerca de">
         <SettingsRow icon={Sparkles} label="Version" value="0.2.0" chevron={false} />
-        <SettingsRow icon={Info}     label="Politica de privacidad" chevron={false} />
+        <SettingsRow icon={Info}     label="Politica de privacidad" onClick={() => window.open('/privacidad', '_blank')} />
       </SettingsSection>
 
       <div className="card overflow-hidden">

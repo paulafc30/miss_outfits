@@ -2,8 +2,10 @@ import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 
-const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string | undefined
-const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit'
+const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_FORM_ID as string | undefined
+const FORMSPREE_ENDPOINT = FORMSPREE_FORM_ID
+  ? `https://formspree.io/f/${FORMSPREE_FORM_ID}`
+  : undefined
 const APP_NAME = 'Miss Outfits'
 const APP_VERSION = '0.2.0'
 
@@ -46,12 +48,12 @@ export function useSubmitFeedback() {
 
       if (error) throw error
 
-      // 2. Enviar por email via Web3Forms (best-effort)
+      // 2. Enviar por email via Formspree (best-effort)
       let emailSent = false
       let emailError: string | null = null
 
-      if (!WEB3FORMS_KEY) {
-        emailError = 'No hay VITE_WEB3FORMS_KEY configurada'
+      if (!FORMSPREE_ENDPOINT) {
+        emailError = 'No hay VITE_FORMSPREE_FORM_ID configurada'
       } else {
         try {
           const typeLabel = TYPE_LABELS[type]
@@ -70,21 +72,20 @@ export function useSubmitFeedback() {
             .filter(Boolean)
             .join('\n')
 
-          const res = await fetch(WEB3FORMS_ENDPOINT, {
+          const res = await fetch(FORMSPREE_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({
-              access_key: WEB3FORMS_KEY,
-              subject: `[${APP_NAME}] ${typeLabel}`,
-              from_name: `${APP_NAME} — ${typeLabel}`,
-              email: replyEmail || `noreply@missoutfits.app`,
+              _subject: `[${APP_NAME}] ${typeLabel}`,
+              email: replyEmail || 'noreply@missoutfits.app',
               message: bodyText,
-              botcheck: '',
             }),
           })
           const json = await res.json().catch(() => ({}))
-          emailSent = res.ok && json.success
-          if (!emailSent) emailError = json.message ?? `HTTP ${res.status}`
+          emailSent = res.ok && json.ok !== false
+          if (!emailSent) {
+            emailError = json.errors?.map((e: any) => e.message).join(', ') ?? `HTTP ${res.status}`
+          }
         } catch (err: any) {
           emailError = err?.message ?? 'Error de red'
         }

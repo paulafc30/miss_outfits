@@ -189,8 +189,37 @@ Deno.serve(async (req: Request) => {
     // un limite de tokens/minuto mas bajo (8K vs 12K del anterior) y ademas
     // consume tokens extra en razonamiento interno, asi que hay menos margen.
     const MAX_ITEMS_PER_LIST = 25
+    // Antes se cogian las primeras N prendas tal cual venian de la base de
+    // datos. Si el armario tiene, por ejemplo, muchas mas camisetas que
+    // pantalones y las camisetas ocupan los primeros puestos, un corte
+    // "primeras N" podia dejar la lista SIN ningun "bottom"/"fullbody" —
+    // entonces la IA nunca podia generar un outfit valido (siempre le
+    // faltaba la parte de abajo) y la validacion de estructura lo rechazaba
+    // siempre, dejando esa ocasion permanentemente en "Reintentar".
+    // Ahora se reparte tipo a tipo (round-robin) para garantizar que cada
+    // tipo de prenda presente en el armario tenga hueco en la lista.
     function toCompact(items: typeof inventory) {
-      return items.slice(0, MAX_ITEMS_PER_LIST).map((i) => ({
+      const byType = new Map<string, typeof items>()
+      for (const item of items) {
+        const bucket = byType.get(item.tipo)
+        if (bucket) bucket.push(item)
+        else byType.set(item.tipo, [item])
+      }
+      const types = [...byType.keys()]
+      const picked: typeof items = []
+      let i = 0
+      while (picked.length < MAX_ITEMS_PER_LIST && types.length > 0) {
+        const t = types[i % types.length]
+        const bucket = byType.get(t)!
+        const next = bucket.shift()
+        if (next) picked.push(next)
+        if (bucket.length === 0) {
+          types.splice(i % types.length, 1)
+          continue // no incrementar i, el siguiente tipo ya ocupa este indice
+        }
+        i++
+      }
+      return picked.map((i) => ({
         id: i.id,
         n: i.nombre,
         t: i.tipo,

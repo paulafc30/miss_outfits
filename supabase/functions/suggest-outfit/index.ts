@@ -157,8 +157,36 @@ Deno.serve(async (req: Request) => {
     // mandaba el objeto completo (nombre, marca, colores, tags, categoria,
     // tipo) sin limite de cantidad, lo que con armarios grandes reventaba
     // el limite de tokens/minuto de Groq. "tipo" ya resume la categoria.
+    //
+    // El corte se hace tipo a tipo (round-robin), no "las primeras N": si
+    // se cortara tal cual venian de la base de datos, un armario con muchas
+    // mas camisetas que pantalones podia dejar la lista sin ningun "bottom",
+    // y entonces ningun outfit generado podia tener parte de abajo.
     const MAX_ITEMS_FOR_PROMPT = 35
-    const compactAvailable = availableItems.slice(0, MAX_ITEMS_FOR_PROMPT).map((i) => ({
+    function toCompactBalanced(items: typeof availableItems) {
+      const byType = new Map<string, typeof items>()
+      for (const item of items) {
+        const bucket = byType.get(item.tipo)
+        if (bucket) bucket.push(item)
+        else byType.set(item.tipo, [item])
+      }
+      const types = [...byType.keys()]
+      const picked: typeof items = []
+      let i = 0
+      while (picked.length < MAX_ITEMS_FOR_PROMPT && types.length > 0) {
+        const t = types[i % types.length]
+        const bucket = byType.get(t)!
+        const next = bucket.shift()
+        if (next) picked.push(next)
+        if (bucket.length === 0) {
+          types.splice(i % types.length, 1)
+          continue
+        }
+        i++
+      }
+      return picked
+    }
+    const compactAvailable = toCompactBalanced(availableItems).map((i) => ({
       id: i.id,
       n: i.nombre,
       t: i.tipo,

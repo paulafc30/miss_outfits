@@ -5,6 +5,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
+// todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
+// alcanza, Groq responde 429 e indica cuanto esperar en el propio mensaje de
+// error (p.ej. "Please try again in 1.3725s"). En vez de fallar directamente,
+// esperamos ese tiempo y reintentamos una vez.
+async function callGroqWithRetry(body: Record<string, unknown>): Promise<Response> {
+  const doFetch = () => fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  let res = await doFetch()
+  if (res.status === 429) {
+    const errText = await res.text()
+    const match = errText.match(/try again in ([\d.]+)s/i)
+    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000
+    await new Promise((resolve) => setTimeout(resolve, Math.min(waitMs, 10000)))
+    res = await doFetch()
+  }
+  return res
+}
+
 // Las 3 franjas fijas del carrusel del dashboard.
 const DAILY_OCCASIONS = ['casual', 'gym', 'cena'] as const
 type DailyOccasion = typeof DAILY_OCCASIONS[number]
@@ -93,7 +119,7 @@ Deno.serve(async (req: Request) => {
       .from('clothes')
       .select('id, name, brand, category_id, colors, tags, size, image_url')
       .eq('user_id', user.id)
-      .not('status', 'in', '("en_venta","vendida","archivada")')
+      .eq('status', 'closet') // excluye baul, en_venta, vendida y archivada
       .limit(90)
 
     if (dbError) throw new Error(dbError.message)
@@ -159,7 +185,10 @@ Deno.serve(async (req: Request) => {
     // Representación compacta (menos tokens): id corto, tipo, color principal.
     // Sin marca/tags/categoria — no aportan lo suficiente al estilismo como
     // para justificar el coste en tokens, y "tipo" ya resume la categoria.
-    const MAX_ITEMS_PER_LIST = 40
+    // Bajado de 40 a 25: el modelo de reemplazo (openai/gpt-oss-120b) tiene
+    // un limite de tokens/minuto mas bajo (8K vs 12K del anterior) y ademas
+    // consume tokens extra en razonamiento interno, asi que hay menos margen.
+    const MAX_ITEMS_PER_LIST = 25
     function toCompact(items: typeof inventory) {
       return items.slice(0, MAX_ITEMS_PER_LIST).map((i) => ({
         id: i.id,
@@ -301,32 +330,25 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con 
 {"outfits":[{"occasion":"casual","name":"nombre creativo","item_ids":["uuid1","uuid2"],"reason":"..."}]}
 (incluye solo las ocasiones pedidas: ${missing.join(', ')})`
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
-        // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
-        model: 'openai/gpt-oss-120b',
-        reasoning_effort: 'low', // solo necesitamos el JSON, no razonamiento largo
-        // gpt-oss es un modelo "razonador": sin forzar json_object a veces
-        // mete texto de razonamiento antes/despues del JSON (o lo corta),
-        // lo que rompía el parseo manual con regex. json_object hace que
-        // el propio Groq garantice una salida JSON valida.
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: 'Eres un estilista de moda. Respondes SOLO con un objeto JSON valido, sin texto extra, sin bloques de codigo markdown.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 1200,
-        temperature: 0.7,
-      }),
+    const groqRes = await callGroqWithRetry({
+      // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
+      // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
+      model: 'openai/gpt-oss-120b',
+      reasoning_effort: 'low', // solo necesitamos el JSON, no razonamiento largo
+      // gpt-oss es un modelo "razonador": sin forzar json_object a veces
+      // mete texto de razonamiento antes/despues del JSON (o lo corta),
+      // lo que rompía el parseo manual con regex. json_object hace que
+      // el propio Groq garantice una salida JSON valida.
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Eres un estilista de moda. Respondes SOLO con un objeto JSON valido, sin texto extra, sin bloques de codigo markdown.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 900,
+      temperature: 0.7,
     })
 
     if (!groqRes.ok) {

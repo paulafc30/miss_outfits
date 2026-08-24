@@ -5,6 +5,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
+// todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
+// alcanza, Groq responde 429 e indica cuanto esperar en el propio mensaje de
+// error (p.ej. "Please try again in 1.3725s"). En vez de fallar directamente,
+// esperamos ese tiempo y reintentamos una vez.
+async function callGroqWithRetry(body: Record<string, unknown>): Promise<Response> {
+  const doFetch = () => fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  let res = await doFetch()
+  if (res.status === 429) {
+    const errText = await res.text()
+    const match = errText.match(/try again in ([\d.]+)s/i)
+    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000
+    await new Promise((resolve) => setTimeout(resolve, Math.min(waitMs, 10000)))
+    res = await doFetch()
+  }
+  return res
+}
+
 function classifyCategory(name: string): string {
   const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   if (/bikini|banador|bano|swimwear/.test(n)) return 'swimwear'
@@ -124,21 +150,14 @@ ${wardrobeLines || 'Vacio.'}`
       { role: 'user', content: message },
     ]
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
-        // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
-        model: 'openai/gpt-oss-120b',
-        reasoning_effort: 'low',
-        messages,
-        max_tokens: 250,
-        temperature: 0.65,
-      }),
+    const groqRes = await callGroqWithRetry({
+      // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
+      // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
+      model: 'openai/gpt-oss-120b',
+      reasoning_effort: 'low',
+      messages,
+      max_tokens: 250,
+      temperature: 0.65,
     })
 
     if (!groqRes.ok) {

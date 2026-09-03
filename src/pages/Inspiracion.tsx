@@ -17,6 +17,9 @@ import { cx } from '@/lib/utils'
 import type { Inspiration, InspirationKind } from '@/types/database'
 
 const PINTEREST_CLIENT_ID = import.meta.env.VITE_PINTEREST_CLIENT_ID ?? ''
+// Pinterest aun no esta autorizado por su equipo de revision. Oculta la
+// integracion nativa (conectar/tableros/pines) sin tocar los atajos manuales.
+const PINTEREST_ENABLED = false
 
 // ────────────────────────────────────────────────────────────────────────────
 // Pinterest section
@@ -225,7 +228,9 @@ export default function Inspiracion() {
         <div>
           <h1 className="heading-xl">Ideas</h1>
           <p className="text-sm text-muted mt-0.5">
-            Tus tableros de Pinterest y atajos a tus tiendas favoritas.
+            {PINTEREST_ENABLED
+              ? 'Tus tableros de Pinterest y atajos a tus tiendas favoritas.'
+              : 'Atajos a tus boards y tiendas favoritas.'}
           </p>
         </div>
         <button onClick={() => { setEditing(null); setDefaultKind('pinterest'); setFormOpen(true) }} className="btn-primary">
@@ -233,14 +238,14 @@ export default function Inspiracion() {
         </button>
       </div>
 
-      {connected && (
+      {PINTEREST_ENABLED && connected && (
         <div className="p-3 rounded-xl text-sm text-center bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
           Pinterest conectado correctamente
         </div>
       )}
 
-      {/* Seccion Pinterest nativa */}
-      {!tokenLoading && (
+      {/* Seccion Pinterest nativa — oculta hasta tener autorizacion de Pinterest */}
+      {PINTEREST_ENABLED && !tokenLoading && (
         pinterestToken
           ? <PinterestSection token={pinterestToken} />
           : <PinterestConnectCard />
@@ -270,11 +275,13 @@ export default function Inspiracion() {
         </>
       )}
 
-      {!isLoading && items.length === 0 && !pinterestToken && !tokenLoading && (
+      {!isLoading && items.length === 0 && (!PINTEREST_ENABLED || (!pinterestToken && !tokenLoading)) && (
         <EmptyState
           icon={Lightbulb}
           title="Sin ideas guardadas aun"
-          subtitle="Conecta Pinterest para ver tus tableros, o anade atajos a tus tiendas favoritas."
+          subtitle={PINTEREST_ENABLED
+            ? 'Conecta Pinterest para ver tus tableros, o anade atajos a tus tiendas favoritas.'
+            : 'Anade atajos a boards de Pinterest o a tus tiendas favoritas.'}
           action={
             <button onClick={() => openAdd('store')} className="btn-secondary">
               <Plus className="w-4 h-4" /> Anadir tienda

@@ -49,7 +49,11 @@ function normalizeSize(raw: string): string | null {
   const trimmed = raw.trim().toUpperCase()
   if (SIZE_CHART[trimmed]) return trimmed
   // 'Talla M', 'M ', 'talla 38'…
-  const m = trimmed.match(/(XS|XXXL|XXL|XL|L|M|S)/)
+  // Con \b: sin los limites de palabra, "TALLA M" encontraba antes la "L"
+  // suelta dentro de "TALLA" (dos letras L seguidas) que la "M" real,
+  // porque el regex probaba alternativas por posicion de izquierda a
+  // derecha y "L" aparece antes en la cadena.
+  const m = trimmed.match(/\b(XS|XXXL|XXL|XL|L|M|S)\b/)
   if (m && SIZE_CHART[m[1]]) return m[1]
   const num = trimmed.match(/\d{2}/)
   if (num && NUMERIC_TO_LETTER[num[0]]) return NUMERIC_TO_LETTER[num[0]]

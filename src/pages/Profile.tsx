@@ -13,6 +13,7 @@ import { calculateBodyType } from '@/lib/bodyType'
 import SettingsRow, { SettingsSection } from '@/components/profile/SettingsRow'
 import EditFieldModal from '@/components/profile/EditFieldModal'
 import ProfileHeader from '@/components/profile/ProfileHeader'
+import AvatarPickerModal from '@/components/profile/AvatarPickerModal'
 import MeasurementsModal from '@/components/profile/MeasurementsModal'
 import BodyTypeCard from '@/components/profile/BodyTypeCard'
 import FeedbackModal from '@/components/profile/FeedbackModal'
@@ -32,6 +33,7 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [editing, setEditing] = useState<Field>(null)
   const [measurementsOpen, setMeasurementsOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -84,6 +86,7 @@ export default function Profile() {
       setAvatarUrl(url)
       setAvatarPath(path)
       showToast('ok', 'Foto actualizada')
+      setAvatarPickerOpen(false)
     } catch (err: any) {
       showToast('err', err?.message ?? 'No se pudo subir la foto')
     } finally {
@@ -91,8 +94,30 @@ export default function Profile() {
     }
   }
 
+  async function handleAvatarPreset(url: string) {
+    if (!user) return
+    setUploadingAvatar(true)
+    try {
+      await updateProfile.mutateAsync({ avatar_url: url, avatar_path: null })
+      // Solo borramos del storage si habia una foto real subida antes (los
+      // avatares predisenados son archivos estaticos de /public, no viven
+      // en el bucket, asi que nunca hay que "borrarlos").
+      if (avatarPath) await deleteAvatar(avatarPath).catch(() => null)
+      setAvatarUrl(url)
+      setAvatarPath(null)
+      showToast('ok', 'Avatar actualizado')
+      setAvatarPickerOpen(false)
+    } catch (err: any) {
+      showToast('err', err?.message ?? 'No se pudo actualizar el avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   async function handleAvatarRemove() {
-    if (!user || !avatarPath) return
+    // Antes exigia avatarPath, pero los avatares predisenados no tienen
+    // path (no viven en el bucket) y con uno activo el boton no hacia nada.
+    if (!user || !avatarUrl) return
     const ok = await confirm({
       title: 'Quitar foto de perfil',
       message: 'Volveras a la inicial coral por defecto. Puedes subir otra foto cuando quieras.',
@@ -102,7 +127,7 @@ export default function Profile() {
     if (!ok) return
     setUploadingAvatar(true)
     try {
-      await deleteAvatar(avatarPath).catch(() => null)
+      if (avatarPath) await deleteAvatar(avatarPath).catch(() => null)
       await updateProfile.mutateAsync({ avatar_url: null, avatar_path: null })
       setAvatarUrl(null)
       setAvatarPath(null)
@@ -164,7 +189,16 @@ export default function Profile() {
         email={email}
         avatarUrl={avatarUrl}
         uploading={uploadingAvatar}
+        onOpenPicker={() => setAvatarPickerOpen(true)}
+      />
+
+      <AvatarPickerModal
+        open={avatarPickerOpen}
+        onClose={() => setAvatarPickerOpen(false)}
         onPickFile={handleAvatarPick}
+        onPickPreset={handleAvatarPreset}
+        currentAvatarUrl={avatarUrl}
+        uploading={uploadingAvatar}
       />
 
       {toast && (

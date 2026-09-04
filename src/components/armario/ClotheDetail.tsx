@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Modal from '@/components/shared/Modal'
 import ImageCarousel from '@/components/shared/ImageCarousel'
-import { useChangeClothesStatus } from '@/hooks/useClothes'
+import CompleteTheLook from '@/components/armario/CompleteTheLook'
+import { useChangeClothesStatus, useClothes } from '@/hooks/useClothes'
+import { useCategories } from '@/hooks/useCategories'
 import { useProfile } from '@/hooks/useProfile'
 import { colorHexByName } from '@/components/shared/ColorPicker'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { supabase } from '@/lib/supabase'
 import { checkFit, FIT_META } from '@/lib/sizeFit'
 import { cx } from '@/lib/utils'
+import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { Clothe } from '@/types/database'
 import { Pencil, Tag, Ruler } from 'lucide-react'
 
@@ -16,18 +19,34 @@ export default function ClotheDetail({
   onClose,
   clothe,
   onEdit,
+  onSelectClothe,
 }: {
   open: boolean
   onClose: () => void
   clothe: Clothe | null
   onEdit: () => void
+  /** Al tocar una sugerencia de "Completa tu look", abre esa prenda. */
+  onSelectClothe?: (id: string) => void
 }) {
   const changeStatus = useChangeClothesStatus()
   const confirm = useConfirm()
   const { data: profile } = useProfile()
+  const { data: closet = [] } = useClothes(['closet'])
+  const { data: categories = [] } = useCategories()
   const [galleryUrls, setGalleryUrls] = useState<string[]>([])
   const [moveError, setMoveError] = useState<string | null>(null)
   const [moving, setMoving] = useState(false)
+
+  const typeById = useMemo(() => categoryTypeMap(categories), [categories])
+
+  const completeLookSuggestions = useMemo(() => {
+    if (!clothe) return []
+    // No tiene sentido sugerir accesorios/zapatos para completar... un
+    // accesorio o un zapato. Solo se muestra para prendas "base".
+    const ownType = clothe.category_id ? typeById[clothe.category_id] : undefined
+    if (ownType === 'footwear' || ownType === 'accessory') return []
+    return suggestCompleteLook([clothe], closet, typeById, new Set([clothe.id]), 8)
+  }, [clothe, closet, typeById])
 
   const fitVerdict = clothe ? checkFit(clothe.size, {
     bust_cm: profile?.bust_cm ?? null,
@@ -113,6 +132,11 @@ export default function ClotheDetail({
             </div>
           )
         })()}
+
+        <CompleteTheLook
+          suggestions={completeLookSuggestions}
+          onSelect={onSelectClothe ? (id) => onSelectClothe(id) : undefined}
+        />
 
         {clothe.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">

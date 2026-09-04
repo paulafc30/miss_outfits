@@ -266,7 +266,11 @@ export default function Armario() {
         prefill={editing ? undefined : prefill}
       />
       <ClotheDetail open={detailOpen} onClose={() => setDetailOpen(false)} clothe={selected}
-        onEdit={() => { setEditing(selected); setDetailOpen(false); setFormOpen(true) }} />
+        onEdit={() => { setEditing(selected); setDetailOpen(false); setFormOpen(true) }}
+        onSelectClothe={(id) => {
+          const next = clothes.find((c) => c.id === id)
+          if (next) setSelected(next)
+        }} />
       <CategoryManager open={catModal} onClose={() => setCatModal(false)} />
       <OutfitForm open={outfitFormOpen} onClose={() => setOutfitFormOpen(false)} outfit={outfitEditing} />
     </div>

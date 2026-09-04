@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Modal from '@/components/shared/Modal'
 import MultiImagePicker, { PickerImage } from '@/components/shared/MultiImagePicker'
 import ShareOutfitModal from './ShareOutfitModal'
+import CompleteTheLook from './CompleteTheLook'
 import { useClothes } from '@/hooks/useClothes'
+import { useCategories } from '@/hooks/useCategories'
 import { useCreateOutfit, useDeleteOutfit, useUpdateOutfit, useOutfits, OutfitWithItems } from '@/hooks/useOutfits'
 import { useAuth } from '@/hooks/useAuth'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { uploadImage, deleteImage } from '@/lib/images'
 import { supabase } from '@/lib/supabase'
+import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { OutfitImage } from '@/types/database'
 import { Trash2, Check, Share2 } from 'lucide-react'
 import { cx } from '@/lib/utils'
@@ -16,6 +19,7 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
   const { user } = useAuth()
   const { data: closet = [] } = useClothes(['closet'])
   const { data: outfits = [] } = useOutfits()
+  const { data: categories = [] } = useCategories()
   const create = useCreateOutfit()
   const update = useUpdateOutfit()
   const del = useDeleteOutfit()
@@ -57,6 +61,13 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
     next.has(id) ? next.delete(id) : next.add(id)
     setSelected(next)
   }
+
+  const typeById = useMemo(() => categoryTypeMap(categories), [categories])
+  const completeLookSuggestions = useMemo(() => {
+    if (selected.size === 0) return []
+    const referenceClothes = closet.filter((c) => selected.has(c.id))
+    return suggestCompleteLook(referenceClothes, closet, typeById, selected, 8)
+  }, [selected, closet, typeById])
 
   async function syncOutfitImages(outfitId: string, userId: string) {
     const stillThere = new Set(
@@ -178,6 +189,8 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
           </div>
           {closet.length === 0 && <p className="text-sm text-muted">No hay prendas en tu armario aun.</p>}
         </div>
+
+        <CompleteTheLook suggestions={completeLookSuggestions} onSelect={toggle} />
 
         {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
 

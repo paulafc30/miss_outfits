@@ -49,7 +49,12 @@ export async function fetchUrlPreview(url: string): Promise<{
     const data = json.data ?? {}
     return {
       title: typeof data.title === 'string' ? data.title : undefined,
-      image: data.image?.url ?? data.logo?.url,
+      // Antes caia al logo del sitio (data.logo) si no habia data.image, lo
+      // que en tiendas como Stradivarius mostraba el logo de la marca en vez
+      // de la prenda (o directamente nada, si el logo tampoco existia). El
+      // logo del sitio nunca es una foto util de la prenda, asi que mejor
+      // dejar el campo vacio y que la usuaria suba la imagen a mano.
+      image: data.image?.url,
       description: typeof data.description === 'string' ? data.description : undefined,
       price: extractPriceFromMeta(data),
     }

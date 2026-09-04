@@ -24,3 +24,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Vitest deja estos temporales sueltos al arrancar (config con top-level await)
+vitest.config.ts.timestamp-*.mjs

@@ -1,11 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, APP_ORIGIN } from '../_shared/cors.ts'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
 
 const PINTEREST_TOKEN_URL = 'https://api.pinterest.com/v5/oauth/token'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +12,7 @@ Deno.serve(async (req) => {
   try {
     // Verificar usuario autenticado
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return new Response('Unauthorized', { status: 401 })
+    if (!authHeader) return new Response('Unauthorized', { status: 401, headers: corsHeaders })
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -29,12 +26,20 @@ Deno.serve(async (req) => {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
+    if (!(await checkRateLimit(supabase, user.id, 'pinterest-token', 6))) return rateLimitResponse(corsHeaders)
+
     const clientId     = Deno.env.get('PINTEREST_CLIENT_ID')!
     const clientSecret = Deno.env.get('PINTEREST_CLIENT_SECRET')!
     const { code, redirect_uri } = await req.json()
 
-    if (!code || !redirect_uri) {
+    if (typeof code !== 'string' || !code || typeof redirect_uri !== 'string' || !redirect_uri) {
       return new Response(JSON.stringify({ error: 'Missing code or redirect_uri' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (!redirect_uri.startsWith(APP_ORIGIN)) {
+      return new Response(JSON.stringify({ error: 'redirect_uri no permitido' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

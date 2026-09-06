@@ -1,9 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
 
 // El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
 // todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
@@ -77,6 +74,19 @@ Deno.serve(async (req: Request) => {
     )
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+
+    if (!(await checkRateLimit(supabase, user.id, 'suggest-outfit', 12))) return rateLimitResponse(corsHeaders)
+
+    const ALLOWED_OCCASIONS = ['casual', 'trabajo', 'cena', 'gym', 'evento']
+    if (occasion != null && (typeof occasion !== 'string' || !ALLOWED_OCCASIONS.includes(occasion))) {
+      return new Response(JSON.stringify({ error: 'occasion invalida' }), { status: 400, headers: corsHeaders })
+    }
+    if (lat != null && (typeof lat !== 'number' || Number.isNaN(lat))) {
+      return new Response(JSON.stringify({ error: 'lat invalida' }), { status: 400, headers: corsHeaders })
+    }
+    if (lon != null && (typeof lon !== 'number' || Number.isNaN(lon))) {
+      return new Response(JSON.stringify({ error: 'lon invalida' }), { status: 400, headers: corsHeaders })
+    }
 
     // Fetch categorias del usuario
     const { data: categories } = await supabase

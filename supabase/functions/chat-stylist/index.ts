@@ -1,9 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
 
 // El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
 // todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
@@ -58,8 +55,22 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
 
+    if (!(await checkRateLimit(supabase, user.id, 'chat-stylist', 20))) return rateLimitResponse(corsHeaders)
+
     const { message, lat, lon, history = [], suggested_ids = [] } = await req.json()
-    if (!message) return new Response(JSON.stringify({ error: 'Missing message' }), { status: 400, headers: corsHeaders })
+    if (typeof message !== 'string' || !message.trim()) {
+      return new Response(JSON.stringify({ error: 'Missing message' }), { status: 400, headers: corsHeaders })
+    }
+    if (message.length > 1000) {
+      return new Response(JSON.stringify({ error: 'Mensaje demasiado largo (maximo 1000 caracteres).' }), { status: 400, headers: corsHeaders })
+    }
+    if (lat != null && (typeof lat !== 'number' || Number.isNaN(lat))) {
+      return new Response(JSON.stringify({ error: 'lat invalida' }), { status: 400, headers: corsHeaders })
+    }
+    if (lon != null && (typeof lon !== 'number' || Number.isNaN(lon))) {
+      return new Response(JSON.stringify({ error: 'lon invalida' }), { status: 400, headers: corsHeaders })
+    }
+    const cleanMessage = message.trim()
 
     const [
       { data: clothes },
@@ -147,7 +158,7 @@ ${wardrobeLines || 'Vacio.'}`
     const messages = [
       { role: 'system', content: systemPrompt },
       ...trimmedHistory,
-      { role: 'user', content: message },
+      { role: 'user', content: cleanMessage },
     ]
 
     const groqRes = await callGroqWithRetry({

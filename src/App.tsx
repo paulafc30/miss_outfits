@@ -13,6 +13,7 @@ import Inspiracion from '@/pages/Inspiracion'
 import Share from '@/pages/Share'
 import PinterestCallback from '@/pages/PinterestCallback'
 import Privacidad from '@/pages/Privacidad'
+import Terminos from '@/pages/Terminos'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/restablecer" element={<ResetPassword />} />
       <Route path="/pinterest-callback" element={<PinterestCallback />} />
       <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/terminos" element={<Terminos />} />
 
       <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route path="/armario" element={<Armario />} />

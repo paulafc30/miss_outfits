@@ -126,7 +126,7 @@ Deno.serve(async (req: Request) => {
       .select('id, name, brand, category_id, colors, tags, size, image_url')
       .eq('user_id', user.id)
       .eq('status', 'closet') // excluye baul, en_venta, vendida y archivada
-      .limit(90)
+      .limit(300)
 
     if (dbError) throw new Error(dbError.message)
     const clothesMap = Object.fromEntries((clothes ?? []).map((c) => [c.id, c]))

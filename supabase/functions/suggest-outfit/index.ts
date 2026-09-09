@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
       .select('id, name, brand, category_id, colors, tags, size, image_url')
       .eq('user_id', user.id)
       .eq('status', 'closet') // excluye baul, en_venta, vendida y archivada
-      .limit(90)
+      .limit(300)
 
     if (dbError) throw new Error(dbError.message)
     if (!clothes || clothes.length < 3) {
@@ -163,6 +163,22 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Baraja Fisher-Yates. Sin esto, "items" siempre venia en el mismo orden
+    // (el de la base de datos) y el corte a 35 de mas abajo elegia SIEMPRE
+    // las mismas prendas en el mismo orden en cada llamada — con un armario
+    // grande, las prendas que quedaban fuera de esas 35 no se ofrecian nunca
+    // a la IA, y encima el modelo tiende a repetir eleccion con la misma
+    // lista de entrada. Barajar antes de cada generacion hace que cada click
+    // en "Sugerir outfit" explore una porcion distinta del armario.
+    function shuffle<T>(arr: T[]): T[] {
+      const copy = [...arr]
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[copy[i], copy[j]] = [copy[j], copy[i]]
+      }
+      return copy
+    }
+
     // Representacion compacta para el prompt (menos tokens): antes se
     // mandaba el objeto completo (nombre, marca, colores, tags, categoria,
     // tipo) sin limite de cantidad, lo que con armarios grandes reventaba
@@ -174,13 +190,14 @@ Deno.serve(async (req: Request) => {
     // y entonces ningun outfit generado podia tener parte de abajo.
     const MAX_ITEMS_FOR_PROMPT = 35
     function toCompactBalanced(items: typeof availableItems) {
+      const shuffled = shuffle(items)
       const byType = new Map<string, typeof items>()
-      for (const item of items) {
+      for (const item of shuffled) {
         const bucket = byType.get(item.tipo)
         if (bucket) bucket.push(item)
         else byType.set(item.tipo, [item])
       }
-      const types = [...byType.keys()]
+      const types = shuffle([...byType.keys()])
       const picked: typeof items = []
       let i = 0
       while (picked.length < MAX_ITEMS_FOR_PROMPT && types.length > 0) {
@@ -233,6 +250,7 @@ OTRAS REGLAS:
 - Usa SOLO IDs de prendas de la lista proporcionada
 - 3-5 prendas por outfit maximo
 - Los 3 outfits deben ser distintos entre si (no repitas las mismas prendas en todos)
+- Prioriza la variedad: usa una seleccion amplia de prendas de la lista, no solo las mas "obvias" o las primeras
 - Combina colores de forma armoniosa
 - El "reason" explica brevemente por que combina bien y es apropiado para la ocasion y clima (max 60 palabras)
 
@@ -256,7 +274,7 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown:
         { role: 'user', content: prompt },
       ],
       max_tokens: 1000,
-      temperature: 0.6,
+      temperature: 0.85, // antes 0.6 — mas variedad entre llamadas repetidas
     })
 
     if (!groqRes.ok) {

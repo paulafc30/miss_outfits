@@ -1,3 +1,6 @@
+// OJO: esta funcion no la llama ninguna parte de la app (la sincronizacion de Vinted/Wallapop se
+// hace con bookmarklets desde useSyncVinted.ts). Ademas no tiene rate limit y descarga cualquier
+// image_url que reciba. Recomendado: no desplegarla / eliminarla de Supabase (ver docs).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { APP_ORIGIN } from '../_shared/cors.ts'
 

@@ -1,3 +1,5 @@
+// PAUSADO: Pinterest denegó el permiso de la API (oct-2026). Hook sin uso activo mientras
+// PINTEREST_ENABLED sea false en pages/Inspiracion.tsx. No borrar: se retomará si lo aprueban.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 

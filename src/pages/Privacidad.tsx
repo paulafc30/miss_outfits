@@ -27,11 +27,13 @@ export default function Privacidad() {
             <li>Correo electrónico y credenciales de acceso (gestionadas por Supabase Auth).</li>
             <li>Fotos y datos de las prendas, outfits y listas de deseos que la usuaria introduce.</li>
             <li>Preferencias de la app (medidas, tipo de cuerpo, tema visual, etc.).</li>
+            {/* Pinterest pausado (permiso de API denegado). Restaurar si se reactiva la integración.
             <li>
               Si se conecta la integración con Pinterest: un token de acceso OAuth, usado
               únicamente para leer los tableros y pines de la propia cuenta conectada (no se
               publica, modifica ni comparte contenido en Pinterest).
             </li>
+            */}
           </ul>
         </section>
 
@@ -53,7 +55,7 @@ export default function Privacidad() {
             <li>Supabase (base de datos, autenticación y almacenamiento de imágenes).</li>
             <li>Groq (generación de sugerencias de outfit mediante IA).</li>
             <li>Open-Meteo (datos de clima, sin necesidad de cuenta ni identificación).</li>
-            <li>Pinterest API (solo si la usuaria conecta voluntariamente su cuenta).</li>
+            {/* Pinterest pausado: <li>Pinterest API (solo si la usuaria conecta voluntariamente su cuenta).</li> */}
           </ul>
         </section>
 

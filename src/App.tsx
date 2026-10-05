@@ -11,7 +11,8 @@ import Venta from '@/pages/Venta'
 import Wishlist from '@/pages/Wishlist'
 import Inspiracion from '@/pages/Inspiracion'
 import Share from '@/pages/Share'
-import PinterestCallback from '@/pages/PinterestCallback'
+// Pinterest pausado: la API nos denegó el permiso. Se conserva el código comentado para retomarlo.
+// import PinterestCallback from '@/pages/PinterestCallback'
 import Privacidad from '@/pages/Privacidad'
 import Terminos from '@/pages/Terminos'
 
@@ -22,7 +23,7 @@ export default function App() {
       <Route path="/registro" element={<Register />} />
       <Route path="/recuperar" element={<ForgotPassword />} />
       <Route path="/restablecer" element={<ResetPassword />} />
-      <Route path="/pinterest-callback" element={<PinterestCallback />} />
+      {/* <Route path="/pinterest-callback" element={<PinterestCallback />} /> */}
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="/terminos" element={<Terminos />} />
 

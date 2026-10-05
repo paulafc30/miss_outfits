@@ -1,3 +1,5 @@
+// PAUSADO: Pinterest denegó el permiso de la API (oct-2026). Nadie llama a esta función mientras
+// la integración esté oculta. Se conserva para retomarla; si quieres, puedes dejarla sin desplegar.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, APP_ORIGIN } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'

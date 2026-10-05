@@ -27,3 +27,9 @@ pnpm-debug.log*
 
 # Vitest deja estos temporales sueltos al arrancar (config con top-level await)
 vitest.config.ts.timestamp-*.mjs
+
+# Los genera `tsc -b` (tsconfig.node.json es composite): vite.config.js/.d.ts son copias de vite.config.ts
+# y los .tsbuildinfo son cache de TypeScript. Se regeneran solos al compilar.
+vite.config.js
+vite.config.d.ts
+*.tsbuildinfo

@@ -12,7 +12,7 @@ PWA para gestionar tu ropa: **armario digital**, **ropa a la venta** (Wallapop /
 
 - **Armario:** prendas con varias fotos, categorías, temporadas, colores (con extracción automática), material, talla y marca. Outfits, «Completa tu look» y compartir un outfit como imagen.
 - **IA:** sugerencias de outfit y outfits diarios según ocasión y clima (Groq + Open-Meteo), chat con estilista y «Prettify» (quitar fondo de la foto **en el navegador**, WASM).
-- **Venta:** flujo Baúl → En Venta → Vendida → Archivada, generador de descripciones e importación desde Wallapop/Vinted mediante bookmarklets y Web Share Target.
+- **Venta:** flujo Baúl → En Venta → Vendida → Archivada, generador de descripciones y compartir desde Wallapop/Vinted (Web Share Target). La sincronización por bookmarklets está **pausada** hasta decidir cómo implementarla bien.
 - **Deseos e inspiración:** listas con vista previa automática por URL.
 - **Calendario:** historial de looks, planificación y estadísticas.
 - **Perfil:** medidas, tipo de silueta y ajuste por talla, tema claro/oscuro, exportación de datos (CSV/JSON).
@@ -73,7 +73,7 @@ npm run dev               # http://localhost:5174
 | `VITE_SUPABASE_ANON_KEY` | Sí | Clave `anon public` |
 | `VITE_HCAPTCHA_SITE_KEY` | No | Site key (pública) de hCaptcha. Necesaria si activas CAPTCHA en Supabase Auth |
 | `VITE_FORMSPREE_FORM_ID` | No | Formulario de Formspree para el feedback por email |
-| `VITE_VINTED_PROFILE_URL` | No | Enlace de ayuda a tu perfil de Vinted |
+| `VITE_VINTED_PROFILE_URL` | No | Solo si se reactiva la sincronización con Vinted (pausada) |
 
 ### Base de datos
 

@@ -43,7 +43,7 @@
 - Toggles Wallapop / Vinted.
 - Tracker de días publicada (badge ámbar si >30 días).
 - Generador de descripciones automáticas (Wallapop + Vinted).
-- **Sync desde Wallapop/Vinted**: bookmarklets JavaScript que escanean el perfil de la usuaria en cada plataforma y redirigen a la app con los datos en base64. Upsert por `vinted_id`/`wallapop_id` para evitar duplicados.
+- **(PAUSADO, oculto en la UI)** Sync desde Wallapop/Vinted: bookmarklets JavaScript que escanean el perfil de la usuaria en cada plataforma y redirigen a la app con los datos en base64. Upsert por `vinted_id`/`wallapop_id` para evitar duplicados.
 - Web Share Target: compartir desde Wallapop/Vinted/tiendas directamente a la app.
 
 ### Lista de Deseos

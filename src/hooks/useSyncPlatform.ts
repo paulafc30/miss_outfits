@@ -1,3 +1,5 @@
+// PAUSADO: la sincronización con Vinted/Wallapop está oculta en la UI (ver pages/Venta.tsx).
+// Este módulo se conserva para reactivarla.
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'

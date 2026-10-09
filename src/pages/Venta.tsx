@@ -1,18 +1,26 @@
+// PAUSADO: la sincronización con Vinted/Wallapop (bookmarklets) está oculta hasta decidir cómo
+// implementarla bien. Se conserva comentada en este archivo (busca "PAUSADO"); la lógica sigue en
+// hooks/useSyncPlatform.ts y lib/importParse.ts (con tests). Para reactivarla, descomenta los
+// bloques marcados y, en los comentarios JSX internos escritos como {/ texto /}, vuelve a poner {/* texto */}.
+// Siguen activos: los interruptores Wallapop/Vinted de cada prenda, el generador de descripciones
+// y compartir desde Wallapop/Vinted (Web Share Target).
 import { useEffect, useMemo, useState } from 'react'
 import { consumeSharedPayload, detectSalePlatform, extractTitleFromShareText } from '@/lib/sharedItem'
 import type { ClothePrefill } from '@/components/armario/ClotheForm'
-import { Bookmark, ExternalLink, Plus, RefreshCw, Tag, X } from 'lucide-react'
+import { Plus, Tag } from 'lucide-react'
+// PAUSADO (sincronización): import { Bookmark, ExternalLink, RefreshCw, X } from 'lucide-react'
 import { useClothes } from '@/hooks/useClothes'
 import { useCategories } from '@/hooks/useCategories'
 import { useSearchStore } from '@/store/search'
-import {
-  generateVintedBookmarklet,
-  generateWallapopBookmarklet,
-  useSyncPlatform,
-  type PlatformItem,
-  type SyncPlatform,
-} from '@/hooks/useSyncPlatform'
-import { parseImport } from '@/lib/importParse'
+// PAUSADO: sincronización con Vinted/Wallapop (ver cabecera del archivo)
+// import {
+//   generateVintedBookmarklet,
+//   generateWallapopBookmarklet,
+//   useSyncPlatform,
+//   type PlatformItem,
+//   type SyncPlatform,
+// } from '@/hooks/useSyncPlatform'
+// import { parseImport } from '@/lib/importParse'
 import SaleCard from '@/components/venta/SaleCard'
 import ClotheForm from '@/components/armario/ClotheForm'
 import EmptyState from '@/components/shared/EmptyState'
@@ -26,19 +34,20 @@ const TABS: { status: ClothesStatus; label: string }[] = [
   { status: 'archivada', label: 'Archivados' },
 ]
 
-const PLATFORM_CONFIG = {
-  vinted: {
-    label: 'Vinted',
-    // URL de tu perfil de Vinted (opcional, VITE_VINTED_PROFILE_URL); por defecto, la home.
-    profileUrl: import.meta.env.VITE_VINTED_PROFILE_URL ?? 'https://www.vinted.es/',
-    catalogNote: 'tu perfil de Vinted',
-  },
-  wallapop: {
-    label: 'Wallapop',
-    profileUrl: 'https://es.wallapop.com/app/catalog/published',
-    catalogNote: 'tu catálogo de Wallapop (wallapop.com/app/catalog/published)',
-  },
-}
+// PAUSADO: configuración de la sincronización con Vinted/Wallapop
+// const PLATFORM_CONFIG = {
+//   vinted: {
+//     label: 'Vinted',
+//     // URL de tu perfil de Vinted (opcional, VITE_VINTED_PROFILE_URL); por defecto, la home.
+//     profileUrl: import.meta.env.VITE_VINTED_PROFILE_URL ?? 'https://www.vinted.es/',
+//     catalogNote: 'tu perfil de Vinted',
+//   },
+//   wallapop: {
+//     label: 'Wallapop',
+//     profileUrl: 'https://es.wallapop.com/app/catalog/published',
+//     catalogNote: 'tu catálogo de Wallapop (wallapop.com/app/catalog/published)',
+//   },
+// }
 
 export default function Venta() {
   const [tab, setTab] = useState<ClothesStatus>('baul')
@@ -48,13 +57,14 @@ export default function Venta() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Clothe | null>(null)
   const [prefill, setPrefill] = useState<ClothePrefill | undefined>(undefined)
-  const [syncOpen, setSyncOpen] = useState(false)
-  const [syncTab, setSyncTab] = useState<SyncPlatform>('vinted')
-  const [pendingItems, setPendingItems] = useState<PlatformItem[] | null>(null)
-  const [pendingPlatform, setPendingPlatform] = useState<SyncPlatform>('vinted')
-  const { importFromBrowser, loading: syncing, result: syncResult, error: syncError } = useSyncPlatform()
+  // PAUSADO: estado de la sincronización con Vinted/Wallapop
+  //   const [syncOpen, setSyncOpen] = useState(false)
+  //   const [syncTab, setSyncTab] = useState<SyncPlatform>('vinted')
+  //   const [pendingItems, setPendingItems] = useState<PlatformItem[] | null>(null)
+  //   const [pendingPlatform, setPendingPlatform] = useState<SyncPlatform>('vinted')
+  //   const { importFromBrowser, loading: syncing, result: syncResult, error: syncError } = useSyncPlatform()
 
-  const origin = window.location.origin
+  //   const origin = window.location.origin
 
   // Detectar share externo (Wallapop/Vinted via Share API)
   useEffect(() => {
@@ -74,25 +84,25 @@ export default function Venta() {
     }
   }, [])
 
-  // Detectar import desde bookmarklet en la URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const vintedRaw = params.get('vinted_import')
-    const wallapopRaw = params.get('wallapop_import')
-    const raw = vintedRaw ?? wallapopRaw
-    const platform: SyncPlatform = vintedRaw ? 'vinted' : 'wallapop'
-    if (!raw) return
-
-    window.history.replaceState({}, '', window.location.pathname)
-
-    const items = parseImport(raw)
-    if (items && items.length > 0) {
-      setPendingItems(items)
-      setPendingPlatform(platform)
-      setSyncTab(platform)
-      setSyncOpen(true)
-    }
-  }, [])
+  // PAUSADO: detección del import por bookmarklet en la URL
+  //   useEffect(() => {
+  //     const params = new URLSearchParams(window.location.search)
+  //     const vintedRaw = params.get('vinted_import')
+  //     const wallapopRaw = params.get('wallapop_import')
+  //     const raw = vintedRaw ?? wallapopRaw
+  //     const platform: SyncPlatform = vintedRaw ? 'vinted' : 'wallapop'
+  //     if (!raw) return
+  //
+  //     window.history.replaceState({}, '', window.location.pathname)
+  //
+  //     const items = parseImport(raw)
+  //     if (items && items.length > 0) {
+  //       setPendingItems(items)
+  //       setPendingPlatform(platform)
+  //       setSyncTab(platform)
+  //       setSyncOpen(true)
+  //     }
+  //   }, [])
 
   const counts = useMemo(() => {
     const c: Record<ClothesStatus, number> = { closet: 0, baul: 0, en_venta: 0, vendida: 0, archivada: 0 }
@@ -116,23 +126,24 @@ export default function Venta() {
     })
   }, [clothes, tab, query, categories])
 
-  const handleImport = async () => {
-    if (!pendingItems) return
-    await importFromBrowser(pendingItems, pendingPlatform)
-    setPendingItems(null)
-    setTab('en_venta')
-  }
-
-  const handleClose = () => {
-    setSyncOpen(false)
-    setPendingItems(null)
-  }
-
-  const activePlatform = PLATFORM_CONFIG[syncTab]
-  const bookmarkletHref = syncTab === 'vinted'
-    ? generateVintedBookmarklet(origin)
-    : generateWallapopBookmarklet(origin)
-  const bookmarkletLabel = `Miss Outfits — ${activePlatform.label} ↗`
+  // PAUSADO: manejadores de la sincronización con Vinted/Wallapop
+  //   const handleImport = async () => {
+  //     if (!pendingItems) return
+  //     await importFromBrowser(pendingItems, pendingPlatform)
+  //     setPendingItems(null)
+  //     setTab('en_venta')
+  //   }
+  //
+  //   const handleClose = () => {
+  //     setSyncOpen(false)
+  //     setPendingItems(null)
+  //   }
+  //
+  //   const activePlatform = PLATFORM_CONFIG[syncTab]
+  //   const bookmarkletHref = syncTab === 'vinted'
+  //     ? generateVintedBookmarklet(origin)
+  //     : generateWallapopBookmarklet(origin)
+  //   const bookmarkletLabel = `Miss Outfits — ${activePlatform.label} ↗`
 
   return (
     <div className="px-4 pb-4 space-y-5">
@@ -142,6 +153,7 @@ export default function Venta() {
           <p className="text-sm text-muted mt-0.5">{STATUS_LABELS[tab]} · {counts[tab]} prendas</p>
         </div>
         <div className="flex gap-2">
+      {/* PAUSADO (botón de sincronizar):
           <button
             onClick={() => setSyncOpen(true)}
             className="btn-secondary"
@@ -149,13 +161,14 @@ export default function Venta() {
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+      */}
           <button onClick={() => { setEditing(null); setFormOpen(true) }} className="btn-primary">
             <Plus className="w-4 h-4" /> Añadir
           </button>
         </div>
       </div>
 
-      {/* Modal de sincronización */}
+      {/* PAUSADO (panel de sincronización):
       {syncOpen && (
         <div className="card p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -165,7 +178,7 @@ export default function Venta() {
             </button>
           </div>
 
-          {/* Selector de plataforma */}
+          {/ Selector de plataforma /}
           {!pendingItems && !syncResult && (
             <div className="flex gap-1 p-1 bg-page rounded-xl">
               {(['vinted', 'wallapop'] as SyncPlatform[]).map((p) => (
@@ -183,7 +196,7 @@ export default function Venta() {
             </div>
           )}
 
-          {/* Items pendientes de importar */}
+          {/ Items pendientes de importar /}
           {pendingItems && !syncResult && (
             <div className="space-y-3">
               <div className="bg-brand-soft rounded-xl p-3 text-xs">
@@ -204,7 +217,7 @@ export default function Venta() {
             </div>
           )}
 
-          {/* Instrucciones del bookmarklet */}
+          {/ Instrucciones del bookmarklet /}
           {!pendingItems && !syncResult && (
             <div className="space-y-3">
               <p className="text-xs text-muted leading-relaxed">
@@ -262,6 +275,7 @@ export default function Venta() {
           )}
         </div>
       )}
+      */}
 
       <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-4 px-4">
         {TABS.map((t) => (

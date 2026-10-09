@@ -19,7 +19,7 @@ App web personal para **organizar la ropa, gestionar lo que pones a la venta en 
 
 Las cinco secciones son:
 
-- **Mi Armario** (sección) — galería de prendas con categorías, outfits y un calendario de "qué llevé / qué llevaré hoy".
+- **Armario** (sección) — galería de prendas con categorías, outfits y un calendario de "qué llevé / qué llevaré hoy".
 - **A la Venta** — flujo Baúl → En Venta → Vendida → Archivada con toggles Wallapop/Vinted y tracker de días publicada.
 - **Lista de Deseos** — items organizados en listas (Verano, Regalos, Rebajas…), con preview automático de URL.
 - **Ideas** (Inspiración) — atajos a boards de Pinterest y secciones de novedades de tiendas favoritas.
@@ -42,7 +42,7 @@ Tests:     Vitest sobre lib/ pura
 
 ```bash
 git clone <repo>
-cd mi_armario
+cd miss-outfits
 npm install
 cp .env.example .env   # rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
 npm run dev            # http://localhost:5174
@@ -68,7 +68,7 @@ src/
 ├── lib/               # supabase, theme, description, bodyType, sizeFit, options, calendar, images...
 ├── store/             # search (Zustand)
 └── types/             # database.ts (Profile, Clothe, Outfit, Wear, Inspiration...)
-supabase/migrations/   # 14 migraciones numeradas 0001-0014, idempotentes
+supabase/migrations/   # 28 migraciones numeradas 0001-0028, idempotentes
 public/                # favicon, iconos PWA, manifest, service worker, vercel.json
 docs/                  # esta carpeta
 ```

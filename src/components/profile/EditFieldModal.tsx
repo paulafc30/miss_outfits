@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '@/components/shared/Modal'
 import PasswordInput from '@/components/shared/PasswordInput'
+import { getErrorMessage } from '@/lib/utils'
 
 export default function EditFieldModal({
   open,
@@ -49,8 +50,8 @@ export default function EditFieldModal({
       if (res?.error) { setError(res.error); return }
       if (res?.info) { setInfo(res.info); return }
       onClose()
-    } catch (err: any) {
-      setError(err?.message ?? 'Error al guardar')
+    } catch (err) {
+      setError(getErrorMessage(err, 'Error al guardar'))
     } finally {
       setSubmitting(false)
     }

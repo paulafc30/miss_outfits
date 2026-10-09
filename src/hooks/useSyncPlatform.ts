@@ -121,15 +121,3 @@ export function useSyncPlatform() {
   return { importFromBrowser, loading, result, error }
 }
 
-/** @deprecated usa useSyncPlatform */
-export function useSyncVinted() {
-  const { importFromBrowser, loading, result, error } = useSyncPlatform()
-  return {
-    importFromBrowser: (items: PlatformItem[]) => importFromBrowser(items, 'vinted'),
-    loading,
-    result,
-    error,
-  }
-}
-
-export type { PlatformItem as VintedBrowserItem }

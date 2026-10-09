@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 
 export type ThemeChoice = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'mi-armario-theme'
+const STORAGE_KEY = 'miss-outfits-theme'
+// Clave de la versión anterior de la app ("Mi Armario"): se lee una vez para no perder la preferencia.
+const LEGACY_STORAGE_KEY = 'mi-armario-theme'
 
 /** Lee la preferencia guardada o "system" por defecto. */
 export function getStoredTheme(): ThemeChoice {
   if (typeof window === 'undefined') return 'system'
-  const t = window.localStorage.getItem(STORAGE_KEY)
+  const t = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY)
   if (t === 'light' || t === 'dark' || t === 'system') return t
   return 'system'
 }

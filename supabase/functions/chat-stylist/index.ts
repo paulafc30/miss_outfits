@@ -1,74 +1,57 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
-
-// El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
-// todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
-// alcanza, Groq responde 429 e indica cuanto esperar en el propio mensaje de
-// error (p.ej. "Please try again in 1.3725s"). En vez de fallar directamente,
-// esperamos ese tiempo y reintentamos una vez.
-async function callGroqWithRetry(body: Record<string, unknown>): Promise<Response> {
-  const doFetch = () => fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  let res = await doFetch()
-  if (res.status === 429) {
-    const errText = await res.text()
-    const match = errText.match(/try again in ([\d.]+)s/i)
-    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000
-    await new Promise((resolve) => setTimeout(resolve, Math.min(waitMs, 10000)))
-    res = await doFetch()
-  }
-  return res
-}
-
-function classifyCategory(name: string): string {
-  const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  if (/bikini|banador|bano|swimwear/.test(n)) return 'swimwear'
-  if (/vestido|mono|jumpsuit|overall|enterizo/.test(n)) return 'fullbody'
-  if (/abrigo|chaqueta|cazadora|blazer|cardigan|jersey|sudadera|hoodie|anorak/.test(n)) return 'outerwear'
-  if (/camiseta|top|blusa|camisa|body|tirante|crop/.test(n)) return 'top'
-  if (/pantalon|falda|short|jean|vaquero|leggin|culot/.test(n)) return 'bottom'
-  if (/zapato|zapatilla|bota|sandalia|tacon|calzado/.test(n)) return 'footwear'
-  if (/accesorio|bolso|cinturon|bufanda|gorro|joya|collar|pendiente|pulsera|reloj|sombrero|gafas/.test(n)) return 'accessory'
-  if (/deporte|gym|sport|running|yoga/.test(n)) return 'sportswear'
-  return 'other'
-}
+import { enforceRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
+import { callGroqWithRetry, GROQ_MODEL } from '../_shared/groq.ts'
+import { classifyCategory } from '../_shared/classify.ts'
+import { jsonResponse, internalError, validCoords } from '../_shared/http.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return new Response(JSON.stringify({ error: 'No auth' }), { status: 401, headers: corsHeaders })
+    if (!authHeader) return jsonResponse({ error: 'No auth' }, 401)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    if (authError || !user) return jsonResponse({ error: 'Unauthorized' }, 401)
 
-    if (!(await checkRateLimit(supabase, user.id, 'chat-stylist', 20))) return rateLimitResponse(corsHeaders)
+    if (!(await enforceRateLimit(supabase, user, 'chat-stylist', 20))) return rateLimitResponse(corsHeaders)
 
     const { message, lat, lon, history = [], suggested_ids = [] } = await req.json()
     if (typeof message !== 'string' || !message.trim()) {
-      return new Response(JSON.stringify({ error: 'Missing message' }), { status: 400, headers: corsHeaders })
+      return jsonResponse({ error: 'Missing message' }, 400)
     }
     if (message.length > 1000) {
-      return new Response(JSON.stringify({ error: 'Mensaje demasiado largo (maximo 1000 caracteres).' }), { status: 400, headers: corsHeaders })
+      return jsonResponse({ error: 'Mensaje demasiado largo (maximo 1000 caracteres).' }, 400)
     }
-    if (lat != null && (typeof lat !== 'number' || Number.isNaN(lat))) {
-      return new Response(JSON.stringify({ error: 'lat invalida' }), { status: 400, headers: corsHeaders })
+    const coordsError = validCoords(lat, lon)
+    if (coordsError) return jsonResponse({ error: coordsError }, 400)
+    // El historial lo manda el cliente: lo validamos para que nadie pueda colar
+    // mensajes con rol 'system' ni historiales enormes (inyeccion de prompt y
+    // consumo de cuota de Groq).
+    if (!Array.isArray(history)) {
+      return jsonResponse({ error: 'historial invalido' }, 400)
     }
-    if (lon != null && (typeof lon !== 'number' || Number.isNaN(lon))) {
-      return new Response(JSON.stringify({ error: 'lon invalida' }), { status: 400, headers: corsHeaders })
+    const safeHistory: { role: 'user' | 'assistant'; content: string }[] = []
+    // Solo miramos los ultimos 8 mensajes (los unicos que se usan en el prompt)
+    for (const h of history.slice(-8)) {
+      if (
+        !h || typeof h !== 'object' ||
+        (h.role !== 'user' && h.role !== 'assistant') ||
+        typeof h.content !== 'string' || h.content.length > 2000
+      ) {
+        return jsonResponse({ error: 'historial invalido' }, 400)
+      }
+      safeHistory.push({ role: h.role, content: h.content })
+    }
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!Array.isArray(suggested_ids) || suggested_ids.length > 100 ||
+        !suggested_ids.every((id: unknown) => typeof id === 'string' && UUID_RE.test(id))) {
+      return jsonResponse({ error: 'suggested_ids invalido' }, 400)
     }
     const cleanMessage = message.trim()
 
@@ -96,7 +79,7 @@ Deno.serve(async (req: Request) => {
     }).join('\n')
 
     // Prendas ya sugeridas en esta conversacion (para evitar repeticion)
-    const alreadySuggestedIds: string[] = suggested_ids ?? []
+    const alreadySuggestedIds: string[] = suggested_ids
     const alreadySuggestedNames = alreadySuggestedIds
       .map((id: string) => (clothes ?? []).find((c: any) => c.id === id) as any)
       .filter(Boolean)
@@ -153,7 +136,7 @@ ${preferencesContext}${weatherContext ? '\n' + weatherContext : ''}
 ARMARIO:
 ${wardrobeLines || 'Vacio.'}`
 
-    const trimmedHistory = history.slice(-4) // max 4 turnos = 8 mensajes para controlar tokens
+    const trimmedHistory = safeHistory.slice(-8) // max 4 turnos = 8 mensajes para controlar tokens
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -162,9 +145,7 @@ ${wardrobeLines || 'Vacio.'}`
     ]
 
     const groqRes = await callGroqWithRetry({
-      // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
-      // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
-      model: 'openai/gpt-oss-120b',
+      model: GROQ_MODEL,
       reasoning_effort: 'low',
       messages,
       max_tokens: 250,
@@ -202,13 +183,10 @@ ${wardrobeLines || 'Vacio.'}`
       .filter(Boolean)
       .map((c: any) => ({ id: c.id, name: c.name, image_url: c.image_url }))
 
-    return new Response(JSON.stringify({ reply, referenced_clothes: referencedClothes, weather: weatherContext }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ reply, referenced_clothes: referencedClothes, weather: weatherContext })
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 200,
-      headers: corsHeaders,
-    })
+    // 200 a proposito: supabase.functions.invoke oculta el body en respuestas no-2xx
+    // y el chat necesita leer `error` para mostrarlo.
+    return internalError('chat-stylist', err, 200)
   }
 })

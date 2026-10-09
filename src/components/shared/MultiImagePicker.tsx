@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ImagePlus, X, Star, Link as LinkIcon, Plus, Loader2, GripVertical, Camera, Sparkles, Undo2, Info } from 'lucide-react'
-import { cx } from '@/lib/utils'
+import { ImagePlus, X, Star, Link as LinkIcon, Plus, Loader2, Camera, Sparkles, Undo2, Info } from 'lucide-react'
+import { cx, getErrorMessage } from '@/lib/utils'
 import { compressImage } from '@/lib/imageCompression'
 import { usePrettify } from '@/hooks/usePrettify'
 
@@ -56,7 +56,7 @@ export default function MultiImagePicker({
   function closePrettifyMenu() { setPrettifyMenuIdx(null); setPrettifyMenuPos(null) }
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
-  const { prettify, progress: prettifyProgress, error: prettifyError } = usePrettify()
+  const { prettify, progress: prettifyProgress } = usePrettify()
 
   async function addFiles(files: FileList | File[]) {
     setError(null)
@@ -84,8 +84,8 @@ export default function MultiImagePicker({
         })
       }
       onChange([...images, ...items])
-    } catch (e: any) {
-      setError(e?.message ?? 'No se pudo procesar la imagen')
+    } catch (e) {
+      setError(getErrorMessage(e, 'No se pudo procesar la imagen'))
     } finally {
       setProcessing(false)
     }
@@ -121,8 +121,8 @@ export default function MultiImagePicker({
         previous,
       }
       onChange(next)
-    } catch (e: any) {
-      setError(e?.message ?? 'Error al aplicar el retoque')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Error al aplicar el retoque'))
     } finally {
       setPrettifyingIdx(null)
     }
@@ -194,7 +194,7 @@ export default function MultiImagePicker({
   // --------- Drag-reorder interno entre miniaturas ---------
   function handleTileDragStart(e: React.DragEvent, i: number) {
     e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/x-mi-armario-reorder', String(i))
+    e.dataTransfer.setData('text/x-miss-outfits-reorder', String(i))
     setDraggingIdx(i)
   }
 

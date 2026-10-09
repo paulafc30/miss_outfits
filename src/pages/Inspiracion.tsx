@@ -13,7 +13,7 @@ import {
   type PinterestBoard,
   type PinterestPin,
 } from '@/hooks/usePinterest'
-import { cx } from '@/lib/utils'
+import { safeHttpUrl } from '@/lib/utils'
 import type { Inspiration, InspirationKind } from '@/types/database'
 
 const PINTEREST_CLIENT_ID = import.meta.env.VITE_PINTEREST_CLIENT_ID ?? ''
@@ -259,7 +259,6 @@ export default function Inspiracion() {
               title="Atajos a boards"
               icon={Bookmark}
               items={pinterest}
-              emptyText="Anade la URL de un board publico para tener un atajo directo."
               onAdd={() => openAdd('pinterest')}
               onEdit={(item) => { setEditing(item); setFormOpen(true) }}
             />
@@ -267,7 +266,6 @@ export default function Inspiracion() {
               title="Tiendas favoritas"
               icon={ShoppingBag}
               items={stores}
-              emptyText="Guarda enlaces directos a las secciones de novedades de tus tiendas."
               onAdd={() => openAdd('store')}
               onEdit={(item) => { setEditing(item); setFormOpen(true) }}
             />
@@ -304,14 +302,12 @@ function Section({
   title,
   icon: Icon,
   items,
-  emptyText,
   onAdd,
   onEdit,
 }: {
   title: string
   icon: typeof Bookmark
   items: Inspiration[]
-  emptyText: string
   onAdd: () => void
   onEdit: (item: Inspiration) => void
 }) {
@@ -345,9 +341,9 @@ function Section({
               </div>
             </button>
             <a
-              href={it.url}
+              href={safeHttpUrl(it.url) ?? undefined}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="flex items-center justify-center gap-1 text-xs text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/10 py-2 border-t border-line-soft"
             >
               <ExternalLink className="w-3.5 h-3.5" /> Abrir

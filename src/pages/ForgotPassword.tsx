@@ -1,23 +1,33 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { authErrorMessage } from '@/lib/authErrors'
 import { AuthLayout } from './Login'
+import { useCaptcha } from '@/hooks/useCaptcha'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [info, setInfo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const { captcha, getToken } = useCaptcha()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null); setInfo(null); setLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/restablecer`,
-    })
-    setLoading(false)
-    if (error) return setError(error.message)
-    setInfo('Revisa tu correo para el enlace de recuperación.')
+    try {
+      const captchaToken = await getToken()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/restablecer`,
+        captchaToken,
+      })
+      if (error) return setError(authErrorMessage(error))
+      setInfo('Revisa tu correo para el enlace de recuperación.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se ha podido enviar el enlace.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -36,6 +46,7 @@ export default function ForgotPassword() {
         <p className="text-sm text-center text-muted">
           <Link to="/login" className="text-brand-700 font-semibold hover:underline">Volver al login</Link>
         </p>
+        {captcha}
       </form>
     </AuthLayout>
   )

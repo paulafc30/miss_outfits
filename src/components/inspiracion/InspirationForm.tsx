@@ -9,7 +9,7 @@ import {
   useDeleteInspiration,
   isPinterestUrl,
 } from '@/hooks/useInspirations'
-import { fetchUrlPreview } from '@/lib/utils'
+import { fetchUrlPreview, getErrorMessage } from '@/lib/utils'
 import { cx } from '@/lib/utils'
 import type { Inspiration, InspirationKind } from '@/types/database'
 
@@ -88,8 +88,8 @@ export default function InspirationForm({
         await create.mutateAsync(payload)
       }
       onClose()
-    } catch (err: any) {
-      setError(err?.message ?? 'Error al guardar')
+    } catch (err) {
+      setError(getErrorMessage(err, 'Error al guardar'))
     } finally {
       setSubmitting(false)
     }

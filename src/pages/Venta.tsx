@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { consumeSharedPayload, detectSalePlatform, extractTitleFromShareText } from '@/lib/sharedItem'
 import type { ClothePrefill } from '@/components/armario/ClotheForm'
 import { Bookmark, ExternalLink, Plus, RefreshCw, Tag, X } from 'lucide-react'
@@ -11,7 +11,8 @@ import {
   useSyncPlatform,
   type PlatformItem,
   type SyncPlatform,
-} from '@/hooks/useSyncVinted'
+} from '@/hooks/useSyncPlatform'
+import { parseImport } from '@/lib/importParse'
 import SaleCard from '@/components/venta/SaleCard'
 import ClotheForm from '@/components/armario/ClotheForm'
 import EmptyState from '@/components/shared/EmptyState'
@@ -25,23 +26,11 @@ const TABS: { status: ClothesStatus; label: string }[] = [
   { status: 'archivada', label: 'Archivados' },
 ]
 
-function parseImport(raw: string): PlatformItem[] | null {
-  try {
-    const json = decodeURIComponent(escape(atob(raw)))
-    const parsed = JSON.parse(json)
-    if (!Array.isArray(parsed)) return null
-    return parsed.filter((i): i is PlatformItem =>
-      typeof i.platform_id === 'string' && typeof i.name === 'string',
-    )
-  } catch {
-    return null
-  }
-}
-
 const PLATFORM_CONFIG = {
   vinted: {
     label: 'Vinted',
-    profileUrl: 'https://www.vinted.es/member/38565903',
+    // URL de tu perfil de Vinted (opcional, VITE_VINTED_PROFILE_URL); por defecto, la home.
+    profileUrl: import.meta.env.VITE_VINTED_PROFILE_URL ?? 'https://www.vinted.es/',
     catalogNote: 'tu perfil de Vinted',
   },
   wallapop: {
@@ -63,8 +52,6 @@ export default function Venta() {
   const [syncTab, setSyncTab] = useState<SyncPlatform>('vinted')
   const [pendingItems, setPendingItems] = useState<PlatformItem[] | null>(null)
   const [pendingPlatform, setPendingPlatform] = useState<SyncPlatform>('vinted')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ref = useRef<HTMLInputElement>(null)
   const { importFromBrowser, loading: syncing, result: syncResult, error: syncError } = useSyncPlatform()
 
   const origin = window.location.origin
@@ -85,7 +72,6 @@ export default function Venta() {
       setTab(platform ? 'en_venta' : 'baul')
       setFormOpen(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Detectar import desde bookmarklet en la URL
@@ -243,7 +229,6 @@ export default function Venta() {
 
               <div className="flex items-center gap-3 p-3 border border-dashed border-line rounded-xl bg-surface/50">
                 <Bookmark className="w-4 h-4 text-brand-700 shrink-0" />
-                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                 <a
                   href={bookmarkletHref}
                   onClick={(e) => e.preventDefault()}

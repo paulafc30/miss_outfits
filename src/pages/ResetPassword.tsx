@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { authErrorMessage, MIN_PASSWORD_LENGTH } from '@/lib/authErrors'
 import { AuthLayout } from './Login'
 import PasswordInput from '@/components/shared/PasswordInput'
 
@@ -25,12 +26,12 @@ export default function ResetPassword() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.')
+    if (password.length < MIN_PASSWORD_LENGTH) return setError(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
     if (password !== confirm) return setError('Las contraseñas no coinciden.')
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
-    if (error) return setError(error.message)
+    if (error) return setError(authErrorMessage(error))
     navigate('/armario', { replace: true })
   }
 
@@ -52,11 +53,11 @@ export default function ResetPassword() {
             <PasswordInput
               id="new-password"
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_LENGTH}
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
             />
           </div>
           <div>
@@ -64,7 +65,7 @@ export default function ResetPassword() {
             <PasswordInput
               id="confirm-password"
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_LENGTH}
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

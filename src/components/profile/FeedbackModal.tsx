@@ -10,7 +10,7 @@ import {
 import Modal from '@/components/shared/Modal';
 import { useSubmitFeedback, type FeedbackPayload } from '@/hooks/useFeedback';
 import { useAuth } from '@/hooks/useAuth';
-import { cx } from '@/lib/utils';
+import { cx, getErrorMessage } from '@/lib/utils';
 
 const SUPPORT_EMAIL = 'contacto@ferava.es';
 
@@ -75,8 +75,8 @@ export default function FeedbackModal({
     try {
       const res = await submit.mutateAsync({ type, message, email });
       setResult({ emailSent: res.emailSent, emailError: res.emailError });
-    } catch (err: any) {
-      setFormError(err.message ?? 'No se pudo enviar');
+    } catch (err) {
+      setFormError(getErrorMessage(err, 'No se pudo enviar'));
     }
   }
 

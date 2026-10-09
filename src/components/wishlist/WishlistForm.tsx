@@ -4,7 +4,7 @@ import { useCreateWishlistItem, useUpdateWishlistItem, useDeleteWishlistItem } f
 import { useWishlistFolders } from '@/hooks/useWishlistFolders'
 import { useAuth } from '@/hooks/useAuth'
 import { useConfirm } from '@/components/shared/ConfirmModal'
-import { fetchUrlPreview } from '@/lib/utils'
+import { fetchUrlPreview, getErrorMessage } from '@/lib/utils'
 import { Trash2, Sparkles } from 'lucide-react'
 import type { WishlistItem } from '@/types/database'
 
@@ -73,7 +73,6 @@ export default function WishlistForm({
     if (prefill?.autoFetchPreview && prefill.url) {
       doFetchPreview(prefill.url)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item, prefill?.url, prefill?.autoFetchPreview])
 
   async function doFetchPreview(targetUrl: string) {
@@ -107,8 +106,8 @@ export default function WishlistForm({
       if (item) await update.mutateAsync({ id: item.id, ...payload })
       else await create.mutateAsync(payload)
       onClose()
-    } catch (e: any) {
-      setError(e.message ?? 'Error al guardar')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Error al guardar'))
     } finally {
       setSubmitting(false)
     }

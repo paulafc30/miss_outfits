@@ -3,7 +3,7 @@
 > Documento vivo. Aquí queda registrado **todo** lo que se ha construido,
 > lo que está en curso, lo que está pendiente y las ideas para el futuro.
 
-Última actualización: 2026-07-05
+Última actualización: 2026-10-09
 
 ---
 
@@ -25,14 +25,14 @@
 - Perfil estilo iOS: avatar, nombre, email, contraseña, tema claro/oscuro/sistema.
 - Medidas corporales + tipo de silueta + fit check por prenda.
 
-### Mi Armario
+### Armario
 - CRUD de prendas: nombre, categoría, temporada, marca, talla, colores (hasta 3), material, etiquetas, notas, precio.
 - **MultiImagePicker**: galería multi-foto con drag-reorder, compresión automática, URL, cámara.
 - **Prettify** (IA client-side): elimina el fondo de la foto con `@imgly/background-removal` (WASM, sin API key). Estilos: estudio blanco, crema, recorte PNG transparente. Botón deshacer (volver al original).
 - Categorías editables con colores personalizables.
 - **Temporadas**: Primavera/Verano/Otoño/Invierno como base global + temporadas custom (Feria, Navidad…). Una prenda puede pertenecer a varias temporadas (many-to-many via `clothe_seasons`).
 - Outfits: colecciones de prendas con previsualización en mosaico y fotos propias.
-- **Sugerencias de outfit con IA**: Edge Function Groq (llama-3.3-70b) + Open-Meteo (clima). Clasifica prendas por tipo (top/bottom/fullbody/outerwear…), filtra por ocasión y temperatura, valida estructura outfit en servidor.
+- **Sugerencias de outfit con IA**: Edge Function Groq (`openai/gpt-oss-120b`) + Open-Meteo (clima). Clasifica prendas por tipo (top/bottom/fullbody/outerwear…), filtra por ocasión y temperatura, valida estructura outfit en servidor.
 - Compartir outfit como imagen PNG (canvas collage 1080×1080).
 - Búsqueda global filtrando por nombre, marca, color, talla, etiquetas, categoría.
 - Calendario mensual: wears diarios, stats del mes, planeador de looks futuros.
@@ -58,16 +58,18 @@
 - RLS en todas las tablas + GRANTs explícitos.
 - Buckets `clothes-images` y `avatars` con políticas por usuario.
 - PWA instalable (iOS + Android).
-- 17 migraciones numeradas (0001–0017).
-- Tests unitarios: bodyType, sizeFit, description (Vitest).
+- 28 migraciones numeradas (0001–0028).
+- Tests unitarios (Vitest): bodyType, sizeFit, description, importParse, utils, sharedItem, authErrors, clotheType.
+- CI en GitHub Actions: lint, typecheck, tests y build.
+- **Modo demo**: sesiones anónimas + `seed_demo_data()` (ver ADR 0009).
+- **Endurecimiento (oct-2026)**: rate limit por usuario en las Edge Functions, CSP, validación de entradas, GRANTs mínimos (migración 0026).
 
 ---
 
 ## 2. Pendiente inmediato 🔧
 
-### Exportar armario
-- Botón en Perfil → CSV/JSON con todas las prendas, outfits y wears.
-- Backup personal y portabilidad de datos.
+### Pinterest (pausado)
+- La API denegó el permiso. El código está comentado (ruta, `usePinterest`, función `pinterest-token`, migración 0018) para retomarlo si se concede.
 
 ### Stats de ventas
 - Dashboard: total ganado, invertido, neto recuperado.
@@ -87,7 +89,6 @@
 - Notificaciones push (recordatorios, prendas en venta sin movimiento).
 - Tests E2E con Playwright.
 - Tests de hooks de React Query.
-- Política de privacidad y términos.
 - Exportar a PDF estilo lookbook.
 
 ---
@@ -110,6 +111,6 @@
 
 1. `git pull` + `npm install`.
 2. Ejecutar migraciones nuevas en `supabase/migrations/`.
-3. Variables de entorno: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+3. Variables de entorno: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ver `.env.example`).
 4. Secrets en Supabase: `GROQ_API_KEY`.
 5. `npm run dev` → http://localhost:5174.

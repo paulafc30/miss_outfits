@@ -39,7 +39,7 @@ export async function uploadAvatar(file: File, userId: string): Promise<{ url: s
   if (error) {
     // Mensaje claro si todavía no se ha ejecutado la migración 0006_avatars
     const msg = (error.message ?? '').toLowerCase()
-    if (msg.includes('not found') || msg.includes('bucket') || (error as any).statusCode === '404') {
+    if (msg.includes('not found') || msg.includes('bucket') || (error as { statusCode?: string }).statusCode === '404') {
       throw new Error(
         'El bucket "avatars" no existe todavía en Supabase. Ejecuta la migración ' +
         '"0006_avatars.sql" en el SQL Editor para crearlo.'

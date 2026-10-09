@@ -1,32 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
-
-// El plan gratuito de Groq tiene un limite de tokens/minuto compartido por
-// todas las llamadas (daily-outfits + suggest-outfit + chat-stylist). Si se
-// alcanza, Groq responde 429 e indica cuanto esperar en el propio mensaje de
-// error (p.ej. "Please try again in 1.3725s"). En vez de fallar directamente,
-// esperamos ese tiempo y reintentamos una vez.
-async function callGroqWithRetry(body: Record<string, unknown>): Promise<Response> {
-  const doFetch = () => fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  let res = await doFetch()
-  if (res.status === 429) {
-    const errText = await res.text()
-    const match = errText.match(/try again in ([\d.]+)s/i)
-    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000
-    await new Promise((resolve) => setTimeout(resolve, Math.min(waitMs, 10000)))
-    res = await doFetch()
-  }
-  return res
-}
+import { enforceRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
+import { callGroqWithRetry, GROQ_MODEL } from '../_shared/groq.ts'
+import { classifyCategory } from '../_shared/classify.ts'
+import { jsonResponse, internalError, validCoords } from '../_shared/http.ts'
 
 // Las 3 franjas fijas del carrusel del dashboard.
 const DAILY_OCCASIONS = ['casual', 'gym', 'cena'] as const
@@ -36,19 +13,6 @@ const OCCASION_LABELS: Record<DailyOccasion, string> = {
   casual: 'casual del dia a dia',
   gym: 'deporte o gimnasio',
   cena: 'salir de noche / cena',
-}
-
-function classifyCategory(name: string): string {
-  const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  if (/bikini|banador|bano|swimwear/.test(n)) return 'swimwear'
-  if (/vestido|mono|jumpsuit|overall|enterizo/.test(n)) return 'fullbody'
-  if (/abrigo|chaqueta|cazadora|blazer|cardigan|jersey|sudadera|hoodie|anorak/.test(n)) return 'outerwear'
-  if (/camiseta|top|blusa|camisa|body|tirante|crop/.test(n)) return 'top'
-  if (/pantalon|falda|short|jean|vaquero|leggin|culot/.test(n)) return 'bottom'
-  if (/zapato|zapatilla|bota|sandalia|tacón|tacon|calzado/.test(n)) return 'footwear'
-  if (/accesorio|bolso|cinturon|bufanda|gorro|joya|collar|pendiente|pulsera|reloj|sombrero|gafas/.test(n)) return 'accessory'
-  if (/deporte|gym|sport|running|yoga/.test(n)) return 'sportswear'
-  return 'other'
 }
 
 function tempToSeason(tempC: number): string {
@@ -77,23 +41,19 @@ Deno.serve(async (req: Request) => {
     const { lat, lon } = await req.json().catch(() => ({ lat: null, lon: null }))
 
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return new Response(JSON.stringify({ error: 'No auth' }), { status: 401, headers: corsHeaders })
+    if (!authHeader) return jsonResponse({ error: 'No auth' }, 401)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    if (authError || !user) return jsonResponse({ error: 'Unauthorized' }, 401)
 
-    if (!(await checkRateLimit(supabase, user.id, 'daily-outfits', 12))) return rateLimitResponse(corsHeaders)
+    if (!(await enforceRateLimit(supabase, user, 'daily-outfits', 12))) return rateLimitResponse(corsHeaders)
 
-    if (lat != null && (typeof lat !== 'number' || Number.isNaN(lat))) {
-      return new Response(JSON.stringify({ error: 'lat invalida' }), { status: 400, headers: corsHeaders })
-    }
-    if (lon != null && (typeof lon !== 'number' || Number.isNaN(lon))) {
-      return new Response(JSON.stringify({ error: 'lon invalida' }), { status: 400, headers: corsHeaders })
-    }
+    const coordsError = validCoords(lat, lon)
+    if (coordsError) return jsonResponse({ error: coordsError }, 400)
 
     const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC, consistente con created_at)
 
@@ -151,16 +111,13 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!clothes || clothes.length < 3) {
-      return new Response(
-        JSON.stringify({ error: 'Pocas prendas en el armario para sugerir outfits.' }),
-        { status: 400, headers: corsHeaders }
-      )
+      return jsonResponse({ error: 'Pocas prendas en el armario para sugerir outfits.' }, 400)
     }
 
     // 2. Clima (una sola vez, compartido por las 3 ocasiones)
     let weatherDesc = 'clima desconocido'
     let tempC: number | null = null
-    if (lat && lon) {
+    if (lat != null && lon != null) {
       try {
         const wRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
@@ -366,9 +323,7 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con 
 (incluye solo las ocasiones pedidas: ${missing.join(', ')})`
 
     const groqRes = await callGroqWithRetry({
-      // llama-3.3-70b-versatile fue descomisionado por Groq el 2026-08-16.
-      // Reemplazo recomendado por Groq: openai/gpt-oss-120b.
-      model: 'openai/gpt-oss-120b',
+      model: GROQ_MODEL,
       reasoning_effort: 'low', // solo necesitamos el JSON, no razonamiento largo
       // gpt-oss es un modelo "razonador": sin forzar json_object a veces
       // mete texto de razonamiento antes/despues del JSON (o lo corta),
@@ -484,19 +439,11 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con 
       })
 
     if (outfits.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'La IA no genero outfits validos. Intenta de nuevo.' }),
-        { status: 400, headers: corsHeaders }
-      )
+      return jsonResponse({ error: 'La IA no genero outfits validos. Intenta de nuevo.' }, 400)
     }
 
-    return new Response(JSON.stringify({ outfits }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ outfits })
+  } catch (err) {
+    return internalError('daily-outfits', err)
   }
 })

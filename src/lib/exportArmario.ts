@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { Category, Clothe, Outfit, OutfitItem, Season, Wear } from '@/types/database'
 
 function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return ''
@@ -30,13 +31,13 @@ export async function exportArmario() {
 
   // Fetch clothes, categories, seasons, outfits, outfit items
   const [
-    { data: clothes = [] },
-    { data: categories = [] },
-    { data: seasons = [] },
-    { data: clotheSeasons = [] },
-    { data: outfits = [] },
-    { data: outfitItems = [] },
-    { data: wears = [] },
+    { data: clothesRaw },
+    { data: categoriesRaw },
+    { data: seasonsRaw },
+    { data: clotheSeasonsRaw },
+    { data: outfitsRaw },
+    { data: outfitItemsRaw },
+    { data: wearsRaw },
   ] = await Promise.all([
     supabase.from('clothes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
     supabase.from('categories').select('*').eq('user_id', user.id),
@@ -47,28 +48,37 @@ export async function exportArmario() {
     supabase.from('wears').select('*').eq('user_id', user.id).order('wear_date', { ascending: false }),
   ])
 
-  const catMap = Object.fromEntries((categories ?? []).map((c: any) => [c.id, c.name]))
-  const seasonMap = Object.fromEntries((seasons ?? []).map((s: any) => [s.id, s.name]))
+  // El cliente de Supabase no está tipado con `Database`, así que fijamos aquí los tipos de filas.
+  const clothes = (clothesRaw ?? []) as Clothe[]
+  const categories = (categoriesRaw ?? []) as Category[]
+  const seasons = (seasonsRaw ?? []) as Season[]
+  const clotheSeasons = (clotheSeasonsRaw ?? []) as { clothe_id: string; season_id: string }[]
+  const outfits = (outfitsRaw ?? []) as Outfit[]
+  const outfitItems = (outfitItemsRaw ?? []) as OutfitItem[]
+  const wears = (wearsRaw ?? []) as Wear[]
+
+  const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]))
+  const seasonMap = Object.fromEntries(seasons.map((s) => [s.id, s.name]))
 
   // Build season names per clothe
   const clotheSeasonsMap: Record<string, string[]> = {}
-  for (const cs of (clotheSeasons ?? []) as any[]) {
+  for (const cs of clotheSeasons) {
     if (!clotheSeasonsMap[cs.clothe_id]) clotheSeasonsMap[cs.clothe_id] = []
     clotheSeasonsMap[cs.clothe_id].push(seasonMap[cs.season_id] ?? cs.season_id)
   }
 
   // Build outfit clothe names per outfit
   const outfitClotheMap: Record<string, string[]> = {}
-  for (const oi of (outfitItems ?? []) as any[]) {
+  for (const oi of outfitItems) {
     if (!outfitClotheMap[oi.outfit_id]) outfitClotheMap[oi.outfit_id] = []
-    const clothe = (clothes ?? []).find((c: any) => c.id === oi.clothe_id) as any
+    const clothe = clothes.find((c) => c.id === oi.clothe_id)
     if (clothe) outfitClotheMap[oi.outfit_id].push(clothe.name)
   }
 
-  const clotheRows = (clothes ?? []).map((c: any) => ({
+  const clotheRows = clothes.map((c) => ({
     id: c.id,
     nombre: c.name,
-    categoria: catMap[c.category_id] ?? '',
+    categoria: (c.category_id && catMap[c.category_id]) || '',
     marca: c.brand ?? '',
     talla: c.size ?? '',
     colores: (c.colors ?? []).join(' / '),
@@ -82,16 +92,16 @@ export async function exportArmario() {
     creada: c.created_at?.slice(0, 10) ?? '',
   }))
 
-  const outfitRows = (outfits ?? []).map((o: any) => ({
+  const outfitRows = outfits.map((o) => ({
     id: o.id,
     nombre: o.name,
     prendas: (outfitClotheMap[o.id] ?? []).join(' / '),
     creado: o.created_at?.slice(0, 10) ?? '',
   }))
 
-  const wearRows = (wears ?? []).map((w: any) => {
-    const clothe = (clothes ?? []).find((c: any) => c.id === w.clothe_id) as any
-    const outfit = (outfits ?? []).find((o: any) => o.id === w.outfit_id) as any
+  const wearRows = wears.map((w) => {
+    const clothe = clothes.find((c) => c.id === w.clothe_id)
+    const outfit = outfits.find((o) => o.id === w.outfit_id)
     return {
       fecha: w.wear_date,
       prenda: clothe?.name ?? '',

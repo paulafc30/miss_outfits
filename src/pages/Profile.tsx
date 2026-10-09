@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile'
 import { useTheme, ThemeChoice } from '@/lib/theme'
-import { cx } from '@/lib/utils'
+import { cx, getErrorMessage } from '@/lib/utils'
 import { uploadAvatar, deleteAvatar } from '@/lib/images'
 import { compressImage } from '@/lib/imageCompression'
 import { useConfirm } from '@/components/shared/ConfirmModal'
@@ -68,8 +68,8 @@ export default function Profile() {
     try {
       await exportArmario()
       showToast('ok', 'Exportacion descargada (JSON + CSV)')
-    } catch (err: any) {
-      showToast('err', err?.message ?? 'Error al exportar')
+    } catch (err) {
+      showToast('err', getErrorMessage(err, 'Error al exportar'))
     } finally {
       setExporting(false)
     }
@@ -87,8 +87,8 @@ export default function Profile() {
       setAvatarPath(path)
       showToast('ok', 'Foto actualizada')
       setAvatarPickerOpen(false)
-    } catch (err: any) {
-      showToast('err', err?.message ?? 'No se pudo subir la foto')
+    } catch (err) {
+      showToast('err', getErrorMessage(err, 'No se pudo subir la foto'))
     } finally {
       setUploadingAvatar(false)
     }
@@ -107,8 +107,8 @@ export default function Profile() {
       setAvatarPath(null)
       showToast('ok', 'Avatar actualizado')
       setAvatarPickerOpen(false)
-    } catch (err: any) {
-      showToast('err', err?.message ?? 'No se pudo actualizar el avatar')
+    } catch (err) {
+      showToast('err', getErrorMessage(err, 'No se pudo actualizar el avatar'))
     } finally {
       setUploadingAvatar(false)
     }
@@ -132,8 +132,8 @@ export default function Profile() {
       setAvatarUrl(null)
       setAvatarPath(null)
       showToast('ok', 'Foto eliminada')
-    } catch (err: any) {
-      showToast('err', err?.message ?? 'No se pudo quitar la foto')
+    } catch (err) {
+      showToast('err', getErrorMessage(err, 'No se pudo quitar la foto'))
     } finally {
       setUploadingAvatar(false)
     }
@@ -145,8 +145,8 @@ export default function Profile() {
       await updateProfile.mutateAsync({ username: value })
       setUsername(value)
       showToast('ok', 'Nombre actualizado')
-    } catch (err: any) {
-      return { error: err?.message ?? 'Error al guardar' }
+    } catch (err) {
+      return { error: getErrorMessage(err, 'Error al guardar') }
     }
   }
 
@@ -166,8 +166,8 @@ export default function Profile() {
     try {
       await updateProfile.mutateAsync(patch)
       showToast('ok', 'Medidas guardadas')
-    } catch (err: any) {
-      return { error: err?.message ?? 'Error al guardar medidas' }
+    } catch (err) {
+      return { error: getErrorMessage(err, 'Error al guardar medidas') }
     }
   }
 

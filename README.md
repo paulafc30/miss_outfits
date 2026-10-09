@@ -1,129 +1,115 @@
 # Miss Outfits
 
-App web para gestionar tu ropa: armario digital, ropa a la venta (Wallapop / Vinted) y lista de deseos.
+[![CI](https://github.com/paulafc30/mi_armario/actions/workflows/ci.yml/badge.svg)](https://github.com/paulafc30/mi_armario/actions/workflows/ci.yml)
 
-Stack: **React + Vite + TypeScript + Tailwind CSS + Supabase** (Auth + PostgreSQL + Storage).
+PWA para gestionar tu ropa: **armario digital**, **ropa a la venta** (Wallapop / Vinted), **lista de deseos**, **calendario de outfits** y una **estilista con IA** que sugiere looks según el armario y el clima.
 
----
+**Demo en producción:** <https://miss-outfits.ferava.es> — pulsa **«Ver demo sin registrarme»** en la pantalla de inicio de sesión para entrar con datos de ejemplo, sin crear cuenta.
+
+<!-- Añade aquí capturas: ![Armario](docs/screenshots/armario.png) -->
+
+## Qué incluye
+
+- **Armario:** prendas con varias fotos, categorías, temporadas, colores (con extracción automática), material, talla y marca. Outfits, «Completa tu look» y compartir un outfit como imagen.
+- **IA:** sugerencias de outfit y outfits diarios según ocasión y clima (Groq + Open-Meteo), chat con estilista y «Prettify» (quitar fondo de la foto **en el navegador**, WASM).
+- **Venta:** flujo Baúl → En Venta → Vendida → Archivada, generador de descripciones e importación desde Wallapop/Vinted mediante bookmarklets y Web Share Target.
+- **Deseos e inspiración:** listas con vista previa automática por URL.
+- **Calendario:** historial de looks, planificación y estadísticas.
+- **Perfil:** medidas, tipo de silueta y ajuste por talla, tema claro/oscuro, exportación de datos (CSV/JSON).
+- **PWA** instalable en iOS y Android.
+
+## Stack
+
+| Capa | Tecnología |
+| --- | --- |
+| Frontend | React 18, TypeScript (strict), Vite, Tailwind CSS (tokens semánticos + modo oscuro), React Router 6, TanStack Query, Zustand, Zod |
+| Backend | Supabase: Auth, PostgreSQL con RLS, Storage y Edge Functions (Deno) |
+| IA y servicios | Groq (`openai/gpt-oss-120b`), Open-Meteo, microlink.io, `@imgly/background-removal` |
+| Calidad | Vitest, ESLint, GitHub Actions (lint + tipos + tests + build) |
+| Despliegue | Vercel (auto-deploy desde `main`) + Supabase gestionado |
+
+## Arquitectura en 30 segundos
+
+```
+src/
+  pages/        rutas (una por pantalla)
+  components/   UI por dominio: armario, venta, wishlist, calendario, profile, shared…
+  hooks/        TODO el acceso a datos (React Query sobre Supabase); las páginas no llaman a Supabase
+  lib/          funciones puras sin React (fáciles de testear)
+  types/        tipos del esquema
+supabase/
+  migrations/   0001…0028, numeradas e idempotentes (RLS + GRANTs explícitos)
+  functions/    Edge Functions: suggest-outfit, daily-outfits, chat-stylist (+ _shared/)
+docs/           ARCHITECTURE, CODE_STYLE y ADRs (decisiones de diseño)
+```
+
+Las decisiones de diseño están razonadas en [`docs/adr/`](docs/adr/README.md) y la guía completa en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Seguridad
+
+- **RLS en todas las tablas**: cada usuaria solo ve sus filas. Los GRANTs son explícitos y mínimos.
+- **Edge Functions**: autenticación por JWT, CORS limitado al dominio de producción, validación de entradas (ocasión, coordenadas, historial del chat…), **rate limit por usuario** (más estricto para cuentas de demo), errores genéricos al cliente y detalle solo en logs.
+- **CSP y cabeceras** (`vercel.json`): `default-src 'self'`, sin `unsafe-eval`, `frame-ancestors 'none'`, etc.
+- Las claves privadas (`GROQ_API_KEY`, `service_role`) viven **solo** en los secrets de Supabase; el frontend usa únicamente la clave `anon`, protegida por RLS.
+- La entrada que llega por URL (bookmarklets, compartir) se valida con Zod y las URLs de usuario solo se enlazan si son `http(s)`.
 
 ## Puesta en marcha
 
-### 1. Instalar dependencias
+Requisitos: Node 20+ y un proyecto de [Supabase](https://supabase.com).
 
 ```bash
+git clone https://github.com/paulafc30/mi_armario.git miss-outfits
+cd miss-outfits
 npm install
+cp .env.example .env      # y rellena las variables
+npm run dev               # http://localhost:5174
 ```
 
-### 2. Configurar Supabase
+### Variables de entorno (`.env`)
 
-1. Entra en [supabase.com](https://supabase.com) y abre tu proyecto (ya lo tienes creado).
-2. Ve a **Settings → API** y copia:
-   - `Project URL`
-   - `anon public` key
-3. Crea el archivo `.env` en la raíz del proyecto a partir de `.env.example`:
+| Variable | Obligatoria | Descripción |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Sí | URL del proyecto (Settings → API) |
+| `VITE_SUPABASE_ANON_KEY` | Sí | Clave `anon public` |
+| `VITE_HCAPTCHA_SITE_KEY` | No | Site key (pública) de hCaptcha. Necesaria si activas CAPTCHA en Supabase Auth |
+| `VITE_FORMSPREE_FORM_ID` | No | Formulario de Formspree para el feedback por email |
+| `VITE_VINTED_PROFILE_URL` | No | Enlace de ayuda a tu perfil de Vinted |
 
-   ```env
-   VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
-   ```
+### Base de datos
 
-### 3. Ejecutar las migraciones SQL
+Ejecuta **en orden** los archivos de `supabase/migrations/` en el SQL Editor (o con `supabase db push`). Todas son idempotentes.
 
-En el panel de Supabase → **SQL Editor → New query**, pega y ejecuta una a una, **en orden**, las migraciones de `supabase/migrations/`:
-
-1. `0001_initial_schema.sql` — tablas base (profiles, categories, clothes, outfits, outfit_items, wishlist), RLS, bucket de Storage `clothes-images`, categorías por defecto al registrarte.
-2. `0002_extra_fields.sql` — añade brand, size, color a las prendas.
-3. `0003_clothe_images.sql` — tabla `clothe_images` para varias fotos por prenda + trigger que mantiene la portada sincronizada.
-4. `0004_wears.sql` — tabla `wears` para el calendario "qué llevé hoy".
-5. `0005_grants.sql` — GRANTs explícitos para futuro-proof (Supabase cambia su comportamiento por defecto el 30 de octubre de 2026).
-
-> Para tablas que crees en el futuro, recuerda añadir el bloque de GRANTs (ver `0005_grants.sql` como plantilla) y activar RLS con sus políticas dentro de la misma migración.
-
-### 4. Configurar email de Supabase (opcional pero recomendado)
-
-En **Authentication → URL Configuration**:
-- **Site URL**: `http://localhost:5174` (o tu dominio en producción).
-- **Redirect URLs**: añade `http://localhost:5174/restablecer` para que funcione el flujo de recuperar contraseña.
-
-Si quieres saltarte la verificación de email para probar más rápido, en **Authentication → Providers → Email** desactiva *"Confirm email"*.
-
-### 5. Arrancar el dev server
+### Edge Functions y secretos
 
 ```bash
-npm run dev
+supabase link --project-ref <TU_REF>
+supabase secrets set GROQ_API_KEY=<tu clave de Groq>
+supabase functions deploy suggest-outfit daily-outfits chat-stylist
 ```
 
-Abre [http://localhost:5174](http://localhost:5174). Crea una cuenta y entra. ¡Listo!
+Si cambias de dominio, actualiza `APP_ORIGIN` en `supabase/functions/_shared/cors.ts`.
 
----
+### Modo demo (opcional)
 
-## Estructura del proyecto
+El botón «Ver demo» usa sesiones anónimas de Supabase Auth y la función SQL `seed_demo_data()` (migración `0027`):
 
-```
-mi-armario/
-├── src/
-│   ├── components/
-│   │   ├── auth/          ProtectedRoute
-│   │   ├── armario/       Cards y formularios del armario, gestor de categorías, outfits
-│   │   ├── venta/         Tarjetas con flujo de estados Baúl→En Venta→Vendida→Archivada
-│   │   ├── wishlist/      Formulario con preview automático de URL
-│   │   └── shared/        AppShell (layout + bottom nav), Modal, ImagePicker, GlobalSearch
-│   ├── hooks/             useAuth, useClothes, useCategories, useOutfits, useWishlist
-│   ├── lib/               supabase.ts, images.ts (upload), utils.ts (helpers)
-│   ├── pages/             Login, Register, ForgotPassword, ResetPassword, Profile,
-│   │                      Armario, Venta, Wishlist
-│   ├── store/             Zustand store (búsqueda global)
-│   └── types/             database.ts (tipos TS del esquema)
-├── supabase/
-│   └── migrations/        SQL inicial (esquema + RLS + Storage)
-└── .env.example
-```
+1. Authentication → Sign In / Providers → activa **Allow anonymous sign-ins**.
+   Recomendado: Authentication → Attack Protection → **hCaptcha** (pega el *secret* en Supabase y la *site key* en `VITE_HCAPTCHA_SITE_KEY`, también en Vercel). El front envía el `captchaToken` en login, registro, recuperar contraseña y demo.
+2. Ejecuta la migración `0027_demo_seed.sql`.
+3. Opcional: activa la extensión `pg_cron` para que `cleanup_demo_users()` borre a diario las demos de más de 3 días.
 
----
+Detalles y alternativas descartadas en [ADR 0009](docs/adr/0009-demo-mode-anonymous-sessions.md).
 
-## Funcionalidades
+## Scripts
 
-### Mi Armario (sección)
-- Galería de prendas con foto, nombre, categoría, etiquetas y notas.
-- Categorías editables (CRUD) con colores personalizables.
-- **Outfits**: agrupar prendas como colecciones (selección múltiple).
-- Foto de la prenda: subir desde dispositivo o pegar URL externa.
-- Botón **Mover a Venta** que pasa la prenda a "Baúl" automáticamente.
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Typecheck + build de producción |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run test:run` | Tests (Vitest) una sola vez |
 
-### Ropa a la Venta
-- Cuatro estados con flujo progresivo: **Baúl → En Venta → Vendida → Archivada**.
-- Toggles de **Wallapop** (naranja) y **Vinted** (verde) en cada tarjeta, visibles incluso en archivadas.
-- Botones para avanzar o retroceder de estado.
-- Al marcar "Vendida" se guarda automáticamente la fecha de venta.
+## Estado del proyecto
 
-### Lista de Deseos
-- Pega un enlace → botón ✨ obtiene automáticamente título e imagen vía [microlink.io](https://microlink.io) (servicio gratuito que extrae `og:image`).
-- Edición libre de nombre, precio, imagen y notas.
-- Enlace clicable a la tienda original.
-
-### Buscador global
-- Caja de búsqueda en el header, accesible desde todas las secciones.
-- Filtra por nombre, categoría y etiquetas según la sección activa.
-
-### Auth
-- Registro, login, recuperación de contraseña y cambio de email/contraseña.
-- Toda la app está protegida tras el login.
-
----
-
-## Backlog (futuro)
-
-- 📸 **Escáner inteligente de prendas**: cámara que identifique tipo, marca, composición e instrucciones de lavado a partir de la etiqueta (Claude Vision API o Google ML Kit).
-- 🔔 Notificaciones cuando una prenda lleve mucho tiempo "En Venta" sin moverse.
-- 📊 Estadísticas: prendas más usadas, dinero ganado en ventas, etc.
-- 🤝 Compartir outfits con amigas.
-
----
-
-## Comandos útiles
-
-```bash
-npm run dev      # arrancar entorno de desarrollo
-npm run build    # compilar para producción
-npm run preview  # previsualizar el build
-```
+La integración con Pinterest está **pausada** (la API denegó el permiso); el código se conserva comentado y documentado para poder retomarla. Ver [`ROADMAP.md`](ROADMAP.md) para lo implementado y lo pendiente.

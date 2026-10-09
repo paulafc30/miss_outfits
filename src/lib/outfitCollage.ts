@@ -49,8 +49,8 @@ function drawCoverRounded(
   ctx.save()
   // Recorte con bordes redondeados (fallback a rect plano si no hay roundRect)
   ctx.beginPath()
-  if (typeof (ctx as any).roundRect === 'function') {
-    ;(ctx as any).roundRect(x, y, w, h, radius)
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, radius)
   } else {
     ctx.rect(x, y, w, h)
   }
@@ -158,8 +158,8 @@ export async function shareOrDownloadBlob(
     try {
       await navigator.share({ files: [file], title: options?.title, text: options?.text })
       return 'shared'
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return 'cancelled'
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled'
       // Si la share API falla por otra razón, caemos a descarga
     }
   }

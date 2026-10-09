@@ -43,6 +43,7 @@ Lo bueno, lo malo y lo que esto implica a futuro.
 | [0006](./0006-client-side-image-compression.md) | Compresión de imágenes client-side antes del upload | aceptado |
 | [0007](./0007-web-share-target-with-sessionstorage.md) | Web Share Target + handoff vía sessionStorage | aceptado |
 | [0008](./0008-microlink-for-url-previews.md) | microlink.io como servicio externo para previews de URL | aceptado |
+| [0009](./0009-demo-mode-anonymous-sessions.md) | Modo demo con sesiones anónimas y seeder SQL | aceptado |
 
 ## Cómo añadir un ADR nuevo
 

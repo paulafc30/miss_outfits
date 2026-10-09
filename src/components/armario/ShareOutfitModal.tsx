@@ -3,6 +3,7 @@ import { Download, Share2, Loader2, AlertTriangle } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { supabase } from '@/lib/supabase'
 import { generateOutfitCollage, shareOrDownloadBlob } from '@/lib/outfitCollage'
+import { getErrorMessage } from '@/lib/utils'
 
 export default function ShareOutfitModal({
   open,
@@ -68,8 +69,8 @@ export default function ShareOutfitModal({
         if (cancelled) return
         setBlob(generated)
         setPreviewUrl(URL.createObjectURL(generated))
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? 'No se pudo generar la imagen')
+      } catch (e) {
+        if (!cancelled) setError(getErrorMessage(e, 'No se pudo generar la imagen'))
       } finally {
         if (!cancelled) setGenerating(false)
       }

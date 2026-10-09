@@ -4,7 +4,7 @@
  * para sobrevivir a la navegación pero no a un cierre completo del navegador.
  */
 
-const KEY = 'mi-armario:shared'
+const KEY = 'miss-outfits:shared'
 
 export type ShareTarget = 'armario' | 'venta' | 'wishlist'
 

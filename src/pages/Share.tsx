@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Shirt, Tag, Heart, ExternalLink } from 'lucide-react'
 import SettingsRow, { SettingsSection } from '@/components/profile/SettingsRow'
 import { storeSharedPayload, ShareTarget, extractUrl } from '@/lib/sharedItem'
+import { safeHttpUrl } from '@/lib/utils'
 
 export default function Share() {
   const [params] = useSearchParams()
@@ -41,9 +42,9 @@ export default function Share() {
         <p className="text-sm font-medium text-ink line-clamp-3">{headline}</p>
         {url && (
           <a
-            href={url}
+            href={safeHttpUrl(url) ?? undefined}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-brand-700 hover:underline truncate"
           >
             <ExternalLink className="w-3 h-3 shrink-0" />

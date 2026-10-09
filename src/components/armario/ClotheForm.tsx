@@ -13,12 +13,12 @@ import { uploadImage, deleteImage } from '@/lib/images'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { SIZE_OPTIONS, MATERIAL_OPTIONS } from '@/lib/options'
-import { fetchUrlPreview, cx } from '@/lib/utils'
+import { fetchUrlPreview, cx, getErrorMessage } from '@/lib/utils'
 import { isImageUrl } from '@/lib/sharedItem'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { extractDominantColorName } from '@/lib/colorExtraction'
 import type { Clothe, ClothesStatus, ClotheImage } from '@/types/database'
-import { Loader2, Sparkles, Trash2, Wand2, X } from 'lucide-react'
+import { Loader2, Trash2, Wand2, X } from 'lucide-react'
 
 export interface ClothePrefill {
   name?: string
@@ -218,7 +218,7 @@ export default function ClotheForm({
     if (!user) return
     setSubmitting(true); setError(null)
     try {
-      const payload: any = {
+      const payload: Partial<Clothe> & { name: string } = {
         name: name.trim(),
         category_id: categoryId || null,
         brand: brand.trim() || null,
@@ -252,8 +252,8 @@ export default function ClotheForm({
       await syncImages(clotheId, user.id)
       await setClotheSeasonsM.mutateAsync({ clotheId, seasonIds: selectedSeasonIds })
       onClose()
-    } catch (err: any) {
-      setError(err.message ?? 'Error al guardar')
+    } catch (err) {
+      setError(getErrorMessage(err, 'Error al guardar'))
     } finally {
       setSubmitting(false)
     }

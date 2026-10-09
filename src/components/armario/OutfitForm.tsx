@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { OutfitImage } from '@/types/database'
 import { Trash2, Check, Share2 } from 'lucide-react'
-import { cx } from '@/lib/utils'
+import { cx, getErrorMessage } from '@/lib/utils'
 
 export default function OutfitForm({ open, onClose, outfit }: { open: boolean; onClose: () => void; outfit?: OutfitWithItems | null }) {
   const { user } = useAuth()
@@ -58,7 +58,8 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
 
   function toggle(id: string) {
     const next = new Set(selected)
-    next.has(id) ? next.delete(id) : next.add(id)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
     setSelected(next)
   }
 
@@ -113,8 +114,8 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
       }
       await syncOutfitImages(outfitId, user.id)
       onClose()
-    } catch (err: any) {
-      setError(err?.message ?? 'Error al guardar')
+    } catch (err) {
+      setError(getErrorMessage(err, 'Error al guardar'))
     } finally {
       setSubmitting(false)
     }

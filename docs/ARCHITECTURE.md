@@ -265,7 +265,7 @@ Las políticas de Storage limitan escritura/borrado a la carpeta del propio usua
 ## PWA
 
 - `public/manifest.webmanifest` → nombre, iconos, theme_color, start_url, **share_target**.
-- `public/sw.js` → service worker con cache `mi-armario-v5`. Estrategia: network-first con fallback a cache. Solo cachea requests same-origin.
+- `public/sw.js` → service worker con cache `miss-outfits-v6`. Estrategia: network-first con fallback a cache. Solo cachea requests same-origin.
 - Cuando hay cambios visuales grandes (favicon, manifest, colores), se **bumpea** la versión del cache en `sw.js` para forzar refresh.
 
 ## Decisiones técnicas con su porqué

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, Send, MapPin, RefreshCw, Shirt, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { cx } from '@/lib/utils'
+import { cx, getErrorMessage } from '@/lib/utils'
 
 interface ReferencedClothe {
   id: string
@@ -305,10 +305,10 @@ export default function StylistChat() {
         content: reply,
         referenced_clothes: referenced_clothes ?? [],
       }])
-    } catch (err: any) {
+    } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        content: err?.message ?? 'Hubo un problema al conectar con el asistente.',
+        content: getErrorMessage(err, 'Hubo un problema al conectar con el asistente.'),
         isError: true,
         retryText: userMsg,
       }])

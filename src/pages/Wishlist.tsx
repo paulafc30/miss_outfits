@@ -6,7 +6,7 @@ import { useSearchStore } from '@/store/search'
 import WishlistForm, { WishlistPrefill } from '@/components/wishlist/WishlistForm'
 import WishlistFoldersManager from '@/components/wishlist/WishlistFoldersManager'
 import EmptyState from '@/components/shared/EmptyState'
-import { cx, formatPrice } from '@/lib/utils'
+import { cx, formatPrice, safeHttpUrl } from '@/lib/utils'
 import { consumeSharedPayload } from '@/lib/sharedItem'
 import type { WishlistItem } from '@/types/database'
 
@@ -138,7 +138,7 @@ export default function Wishlist() {
                   <p className="text-xs text-muted">{formatPrice(it.price)}</p>
                 </div>
               </button>
-              <a href={it.url} target="_blank" rel="noreferrer"
+              <a href={safeHttpUrl(it.url) ?? undefined} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1 text-xs text-brand-700 hover:bg-brand-50 py-2 border-t border-line-soft">
                 <ExternalLink className="w-3.5 h-3.5" /> Ver
               </a>

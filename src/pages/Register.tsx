@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { authErrorMessage, MIN_PASSWORD_LENGTH } from '@/lib/authErrors'
 import { AuthLayout } from './Login'
 import PasswordInput from '@/components/shared/PasswordInput'
 import GoogleSignInButton from '@/components/shared/GoogleSignInButton'
+import { useCaptcha } from '@/hooks/useCaptcha'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -13,17 +15,24 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const { captcha, getToken } = useCaptcha()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null); setInfo(null)
-    if (password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.')
+    if (password.length < MIN_PASSWORD_LENGTH) return setError(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
     setLoading(true)
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    setLoading(false)
-    if (error) return setError(error.message)
-    if (data.session) navigate('/armario', { replace: true })
-    else setInfo('Te hemos enviado un email para confirmar tu cuenta.')
+    try {
+      const captchaToken = await getToken()
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { captchaToken } })
+      if (error) return setError(authErrorMessage(error))
+      if (data.session) navigate('/armario', { replace: true })
+      else setInfo('Te hemos enviado un email para confirmar tu cuenta.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se ha podido crear la cuenta.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -40,9 +49,9 @@ export default function Register() {
             id="password"
             required
             value={password}
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
+            placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
           />
         </div>
 
@@ -58,6 +67,7 @@ export default function Register() {
         </p>
 
         <GoogleSignInButton />
+        {captcha}
       </form>
     </AuthLayout>
   )

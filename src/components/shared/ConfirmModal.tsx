@@ -69,7 +69,6 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = prevOverflow
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current])
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X, ChevronDown, ChevronRight, Shirt } from 'lucide-react'
+import { X, ChevronDown, ChevronRight, Shirt } from 'lucide-react'
 import { cx } from '@/lib/utils'
 import { useSeasons, useCreateSeason, useDeleteSeason, useClotheSeasons } from '@/hooks/useSeasons'
 import { useClothes } from '@/hooks/useClothes'

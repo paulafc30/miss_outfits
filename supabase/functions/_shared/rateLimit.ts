@@ -34,3 +34,22 @@ export function rateLimitResponse(corsHeaders: Record<string, string>) {
     { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   )
 }
+
+/**
+ * Rate limit "con conciencia de demo": las cuentas anonimas (modo demo) tienen
+ * un limite por minuto 4 veces menor y un tope diario, para que nadie pueda
+ * gastar la cuota de Groq creando sesiones de demo.
+ */
+export async function enforceRateLimit(
+  supabase: SupabaseClient,
+  user: { id: string; is_anonymous?: boolean },
+  endpoint: string,
+  perMinute: number,
+): Promise<boolean> {
+  if (user.is_anonymous) {
+    const okMinute = await checkRateLimit(supabase, user.id, endpoint, Math.max(2, Math.floor(perMinute / 4)))
+    if (!okMinute) return false
+    return await checkRateLimit(supabase, user.id, `${endpoint}:day`, 15, 86400)
+  }
+  return await checkRateLimit(supabase, user.id, endpoint, perMinute)
+}

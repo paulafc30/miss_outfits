@@ -33,3 +33,6 @@ vitest.config.ts.timestamp-*.mjs
 vite.config.js
 vite.config.d.ts
 *.tsbuildinfo
+
+# Estado local de la CLI de Supabase (se regenera con `supabase link`)
+supabase/.temp/

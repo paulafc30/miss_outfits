@@ -98,7 +98,6 @@ export function useChangeClothesStatus() {
       const missingColumn =
         result.error && (msg.includes('listed_at') || msg.includes('sold_at') || msg.includes('column'))
       if (missingColumn) {
-        // eslint-disable-next-line no-console
         console.warn('Columna opcional inexistente en BD; reintentando sólo con status.', result.error)
         result = await supabase.from('clothes').update({ status }).eq('id', id).select().single()
       }

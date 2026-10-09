@@ -3,6 +3,7 @@ import { Shirt, Tag, Heart, User, Lightbulb } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import HangerIcon from "./HangerIcon";
 import StylistChat from "./StylistChat";
+import DemoBanner from "./DemoBanner";
 import { cx } from "@/lib/utils";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
 export default function AppShell() {
   return (
     <div className="min-h-screen flex flex-col">
+      <DemoBanner />
       <header className="sticky top-0 z-20 bg-page/20 backdrop-blur-xl safe-top">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-brand-gradient text-white shadow-lift shrink-0">

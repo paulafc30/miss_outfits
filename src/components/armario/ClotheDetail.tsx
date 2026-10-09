@@ -9,7 +9,7 @@ import { colorHexByName } from '@/components/shared/ColorPicker'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { supabase } from '@/lib/supabase'
 import { checkFit, FIT_META } from '@/lib/sizeFit'
-import { cx } from '@/lib/utils'
+import { cx, getErrorMessage } from '@/lib/utils'
 import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { Clothe } from '@/types/database'
 import { Pencil, Tag, Ruler } from 'lucide-react'
@@ -85,10 +85,9 @@ export default function ClotheDetail({
     try {
       await changeStatus.mutateAsync({ id: clothe.id, status: 'baul' })
       onClose()
-    } catch (err: any) {
-      // eslint-disable-next-line no-console
+    } catch (err) {
       console.error('Error moviendo a venta', err)
-      setMoveError(err?.message ?? 'No se pudo mover. Mira la consola del navegador para más detalles.')
+      setMoveError(getErrorMessage(err, 'No se pudo mover. Mira la consola del navegador para más detalles.'))
     } finally {
       setMoving(false)
     }

@@ -82,3 +82,31 @@ function extractPriceFromMeta(data: unknown): number | undefined {
   }
   return undefined
 }
+
+/**
+ * Extrae un mensaje legible de un valor capturado en un `catch` (que en TS es
+ * `unknown`). Acepta `Error`, objetos con `message` (p. ej. PostgrestError de
+ * Supabase) y cae al texto de respaldo en cualquier otro caso.
+ */
+export function getErrorMessage(err: unknown, fallback = 'Ha ocurrido un error'): string {
+  if (err instanceof Error && err.message) return err.message
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const m = (err as { message?: unknown }).message
+    if (typeof m === 'string' && m) return m
+  }
+  return fallback
+}
+
+/**
+ * Devuelve la URL normalizada solo si es http(s); si no (p. ej. `javascript:`),
+ * devuelve null. Úsala antes de poner una URL escrita por el usuario en un href.
+ */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const u = new URL(value.trim())
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null
+  } catch {
+    return null
+  }
+}

@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
+import { getErrorMessage } from '@/lib/utils'
 
 const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_FORM_ID as string | undefined
 const FORMSPREE_ENDPOINT = FORMSPREE_FORM_ID
@@ -84,10 +85,10 @@ export function useSubmitFeedback() {
           const json = await res.json().catch(() => ({}))
           emailSent = res.ok && json.ok !== false
           if (!emailSent) {
-            emailError = json.errors?.map((e: any) => e.message).join(', ') ?? `HTTP ${res.status}`
+            emailError = json.errors?.map((e: { message?: string }) => e.message).join(', ') ?? `HTTP ${res.status}`
           }
-        } catch (err: any) {
-          emailError = err?.message ?? 'Error de red'
+        } catch (err) {
+          emailError = getErrorMessage(err, 'Error de red')
         }
       }
 

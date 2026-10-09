@@ -22,7 +22,10 @@ export function useCaptcha(): { captcha: ReactNode; getToken: () => Promise<stri
     try {
       const res = await ref.current?.execute({ async: true })
       return res?.response
-    } catch {
+    } catch (err) {
+      // hCaptcha rechaza con un código (p. ej. 'invalid-data', 'rate-limited',
+      // 'challenge-closed'). Se deja en consola para poder diagnosticar.
+      console.warn('[hCaptcha]', err)
       throw new Error('No se ha podido completar la verificación anti-bots. Inténtalo de nuevo.')
     } finally {
       ref.current?.resetCaptcha()

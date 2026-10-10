@@ -26,6 +26,7 @@ export async function startDemoSession(captchaToken?: string): Promise<void> {
 
   const { error: seedError } = await supabase.rpc('seed_demo_data')
   if (seedError) {
+    console.warn('[demo] seed_demo_data falló:', seedError.code, seedError.message, seedError.details)
     await supabase.auth.signOut()
     throw new Error('No se han podido cargar los datos de ejemplo. Inténtalo de nuevo.')
   }

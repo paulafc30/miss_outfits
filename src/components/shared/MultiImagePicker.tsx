@@ -350,7 +350,7 @@ export default function MultiImagePicker({
             <>
               <ImagePlus className="w-6 h-6 mb-0.5" />
               <span className="text-[11px] font-medium leading-tight text-center px-1">
-                {filesDragging ? 'Suelta aqui!' : images.length === 0 ? 'Arrastra o pulsa' : 'Anadir'}
+                {filesDragging ? '¡Suelta aquí!' : images.length === 0 ? 'Arrastra o pulsa' : 'Añadir'}
               </span>
             </>
           )}

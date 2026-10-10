@@ -264,9 +264,9 @@ export default function Profile() {
       </div>
 
       <p className="text-center text-xs text-muted pb-2">
-        Hecho con cuidado por{' '}
-        <a href="https://ferava.dev" target="_blank" rel="noreferrer" className="font-semibold text-brand-700 hover:underline">
-          Desarrollos Ferava
+        Desarrollado por{' '}
+        <a href="https://ferava.es" target="_blank" rel="noreferrer" className="font-semibold text-brand-700 hover:underline">
+          Ferava Software
         </a>
       </p>
 

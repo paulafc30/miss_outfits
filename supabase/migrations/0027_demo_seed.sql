@@ -64,7 +64,7 @@ begin
   insert into public.categories (user_id, name, color)
   select v_uid, c.name, c.color
     from (values ('Camisetas','#a855f7'),('Pantalones','#3b82f6'),('Vestidos','#ec4899'),
-                 ('Zapatos','#f59e0b'),('Accesorios','#10b981'),('Abrigos','#6366f1')) as c(name, color)
+                 ('Zapatos','#f59e0b'),('Accesorios','#10b981'),('Abrigos','#6366f1'),('Deporte','#14b8a6')) as c(name, color)
   on conflict (user_id, name) do nothing;
 
   select coalesce(jsonb_object_agg(name, id), '{}'::jsonb) into v_cat
@@ -87,6 +87,8 @@ begin
     {"slug":"bolso-beige","name":"Bolso bandolera beige","cat":"Accesorios","brand":"Atelier Sol","size":null,"status":"closet","colors":["Beige"],"hexes":["#d9c4a0"],"seasons":[1,2,3,4],"tags":["diario"],"material":"Piel sintética"},
     {"slug":"abrigo-camel","name":"Abrigo camel","cat":"Abrigos","brand":"Nord & Co.","size":"M","status":"closet","colors":["Marrón"],"hexes":["#c19a6b"],"seasons":[3,4],"tags":["invierno","elegante"],"material":"Lana"},
     {"slug":"chaqueta-negra","name":"Chaqueta negra","cat":"Abrigos","brand":"Denim Studio","size":"M","status":"closet","colors":["Negro"],"hexes":["#262626"],"seasons":[1,3],"tags":["básico"],"material":"Poliéster"},
+    {"slug":"top-deportivo","name":"Top deportivo negro","cat":"Deporte","brand":"Stride","size":"M","status":"closet","colors":["Negro"],"hexes":["#1f2937"],"seasons":[1,2,3,4],"tags":["gym","deporte"],"material":"Poliéster"},
+    {"slug":"leggings-deportivos","name":"Leggings deportivos grises","cat":"Deporte","brand":"Stride","size":"M","status":"closet","colors":["Gris"],"hexes":["#6b7280"],"seasons":[1,2,3,4],"tags":["gym","deporte"],"material":"Poliéster"},
     {"slug":"camiseta-amarilla","name":"Camiseta amarilla","cat":"Camisetas","brand":"Maison Lila","size":"M","status":"baul","colors":["Amarillo"],"hexes":["#fbbf24"],"seasons":[2],"tags":["verano"],"material":"Algodón"},
     {"slug":"pantalon-morado","name":"Pantalón palazzo morado","cat":"Pantalones","brand":"Atelier Sol","size":"38","status":"baul","colors":["Morado"],"hexes":["#7c3aed"],"seasons":[1,2],"tags":["fiesta"],"material":"Viscosa"},
     {"slug":"vestido-marino","name":"Vestido azul marino","cat":"Vestidos","brand":"Maison Lila","size":"M","status":"en_venta","price":18,"vinted":true,"wallapop":false,"colors":["Azul marino"],"hexes":["#1e3a8a"],"seasons":[1,2,3],"tags":["cena"],"material":"Crepé","listed_days":6},

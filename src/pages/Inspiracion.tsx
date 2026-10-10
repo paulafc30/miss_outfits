@@ -234,7 +234,7 @@ export default function Inspiracion() {
           </p>
         </div>
         <button onClick={() => { setEditing(null); setDefaultKind('pinterest'); setFormOpen(true) }} className="btn-primary">
-          <Plus className="w-4 h-4" /> Anadir
+          <Plus className="w-4 h-4" /> Añadir
         </button>
       </div>
 
@@ -276,13 +276,13 @@ export default function Inspiracion() {
       {!isLoading && items.length === 0 && (!PINTEREST_ENABLED || (!pinterestToken && !tokenLoading)) && (
         <EmptyState
           icon={Lightbulb}
-          title="Sin ideas guardadas aun"
+          title="Sin ideas guardadas aún"
           subtitle={PINTEREST_ENABLED
-            ? 'Conecta Pinterest para ver tus tableros, o anade atajos a tus tiendas favoritas.'
-            : 'Anade atajos a boards de Pinterest o a tus tiendas favoritas.'}
+            ? 'Conecta Pinterest para ver tus tableros, o añade atajos a tus tiendas favoritas.'
+            : 'Añade atajos a boards de Pinterest o a tus tiendas favoritas.'}
           action={
             <button onClick={() => openAdd('store')} className="btn-secondary">
-              <Plus className="w-4 h-4" /> Anadir tienda
+              <Plus className="w-4 h-4" /> Añadir tienda
             </button>
           }
         />
@@ -319,7 +319,7 @@ function Section({
           <Icon className="w-4 h-4 text-brand-700" /> {title}
         </h2>
         <button onClick={onAdd} className="text-xs font-semibold text-brand-700 hover:text-brand-800 flex items-center gap-1">
-          <Plus className="w-3.5 h-3.5" /> Anadir
+          <Plus className="w-3.5 h-3.5" /> Añadir
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -330,13 +330,18 @@ function Section({
                 {it.image_url ? (
                   <img src={it.image_url} alt={it.title ?? ''} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageOff className="w-8 h-8 text-muted/50" />
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-brand-500/15 via-surface-soft to-surface-soft">
+                    <span className="w-14 h-14 rounded-2xl bg-brand-500/15 text-brand-700 flex items-center justify-center">
+                      <Icon className="w-7 h-7" />
+                    </span>
+                    <span className="text-xs font-medium text-muted px-3 text-center truncate max-w-full">
+                      {hostnameOf(it.url)}
+                    </span>
                   </div>
                 )}
               </div>
               <div className="p-2.5">
-                <p className="text-sm font-medium truncate">{it.title ?? 'Sin titulo'}</p>
+                <p className="text-sm font-medium truncate">{it.title ?? 'Sin título'}</p>
                 <p className="text-xs text-muted truncate">{hostnameOf(it.url)}</p>
               </div>
             </button>

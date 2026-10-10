@@ -447,7 +447,7 @@ export default function ClotheForm({
             </button>
           )}
           <button type="submit" disabled={submitting || !name.trim()} className="btn-primary flex-1 justify-center">
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : clothe ? 'Guardar cambios' : 'Anadir prenda'}
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : clothe ? 'Guardar cambios' : 'Añadir prenda'}
           </button>
         </div>
       </form>

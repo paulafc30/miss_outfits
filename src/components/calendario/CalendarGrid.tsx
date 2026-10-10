@@ -65,14 +65,23 @@ export default function CalendarGrid({
               )}
 
               {previews.length > 0 && (
-                <div className={cx('flex-1 flex items-end gap-0.5 mt-1', allPlanned && 'opacity-70')}>
-                  {previews.slice(0, 2).map((src, i) => (
-                    <img key={i} src={src} alt=""
-                      className="w-full h-4 sm:h-5 object-cover rounded-sm" />
-                  ))}
-                  {previews.length > 2 && (
-                    <span className="text-[9px] text-muted font-medium">+{previews.length - 2}</span>
+                <div
+                  className={cx(
+                    'flex-1 min-h-0 mt-1 grid gap-0.5',
+                    previews.length > 1 ? 'grid-cols-2' : 'grid-cols-1',
+                    allPlanned && 'opacity-70'
                   )}
+                >
+                  {previews.slice(0, 2).map((src, i) => (
+                    <div key={i} className="relative min-h-0 overflow-hidden rounded-md bg-surface-soft">
+                      <img src={src} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                      {i === 1 && previews.length > 2 && (
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-[10px] font-semibold text-white">
+                          +{previews.length - 1}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
               {wears.length > 0 && previews.length === 0 && (

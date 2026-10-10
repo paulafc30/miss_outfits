@@ -384,7 +384,13 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con 
       const validIds = Array.isArray(outfit?.item_ids)
         ? outfit.item_ids.filter((id: string) => clothesMap[id])
         : []
-      if (!outfit || validIds.length < 2) continue
+      // Gym: la regla de estructura pide 1 prenda deportiva + calzado opcional,
+      // asi que un outfit valido puede tener una sola prenda. Si el armario
+      // tiene ropa deportiva, basta con 1 (y que incluya alguna deportiva).
+      const gymHasSportswear = gymItems.some((i) => gymTypes.includes(i.tipo))
+      const minItems = occasion === 'gym' && gymHasSportswear ? 1 : 2
+      if (!outfit || validIds.length < minItems) continue
+      if (occasion === 'gym' && gymHasSportswear && !validIds.some((id: string) => itemType(id) === 'sportswear')) continue
 
       if (occasion !== 'gym' && nonGymHasBottomOption) {
         const hasBottom = validIds.some((id: string) => {

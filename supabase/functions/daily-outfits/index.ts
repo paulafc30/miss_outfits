@@ -411,6 +411,26 @@ Responde UNICAMENTE con un objeto JSON valido, sin texto extra ni markdown, con 
       })
     }
 
+    // Red de seguridad para gym: si la IA no devolvio un outfit de gym valido
+    // pero el armario SI tiene ropa deportiva, se monta uno a mano (prendas
+    // deportivas + un calzado) en vez de dejar el hueco vacio con "Reintentar".
+    if (missing.includes('gym') && !rowsToInsert.some((r) => r.occasion === 'gym')) {
+      const sport = gymItems.filter((i) => gymTypes.includes(i.tipo)).slice(0, 2)
+      if (sport.length > 0) {
+        const shoes = gymItems.find((i) => i.tipo === 'footwear')
+        const ids = [...sport.map((i) => i.id), ...(shoes ? [shoes.id] : [])]
+        rowsToInsert.push({
+          user_id: user.id,
+          suggestion_date: today,
+          occasion: 'gym',
+          name: 'Look de entrenamiento',
+          reason: 'Prendas deportivas comodas para entrenar' + (shoes ? ', con calzado que aguanta el ritmo.' : '.'),
+          item_ids: ids,
+          weather: weatherDesc,
+        })
+      }
+    }
+
     if (rowsToInsert.length > 0) {
       const { error: upsertError } = await supabase
         .from('daily_outfit_suggestions')

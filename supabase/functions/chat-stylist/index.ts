@@ -70,12 +70,16 @@ Deno.serve(async (req: Request) => {
     const catMap: Record<string, string> = Object.fromEntries((categories ?? []).map((c: any) => [c.id, c.name]))
 
     // Formato compacto para reducir tokens
-    const wardrobeLines = (clothes ?? []).map((c: any) => {
+    // El modelo recibe numeros cortos (1, 2, 3...) en vez de UUIDs: a veces
+    // truncaba o acortaba los UUID y las fotos no salian. El numero se traduce
+    // a la prenda real aqui, en el servidor.
+    const wardrobe = (clothes ?? []) as any[]
+    const wardrobeLines = wardrobe.map((c: any, idx: number) => {
       const cat = catMap[c.category_id] ?? '?'
       const type = classifyCategory(cat)
       const colors = (c.colors ?? []).slice(0, 2).join('/')
       const brand = c.brand ? `(${c.brand})` : ''
-      return `[ID:${c.id}] ${c.name}${brand ? ' ' + brand : ''} [${type}${colors ? ',' + colors : ''}]`
+      return `[${idx + 1}] ${c.name}${brand ? ' ' + brand : ''} [${type}${colors ? ',' + colors : ''}]`
     }).join('\n')
 
     // Prendas ya sugeridas en esta conversacion (para evitar repeticion)
@@ -124,13 +128,15 @@ Deno.serve(async (req: Request) => {
 Usas SOLO prendas del armario. Nunca inventas ropa.
 
 REGLA - Pedir contexto: Si la pregunta es vaga pregunta la ocasion antes de sugerir.
-REGLA - Sin IDs en texto: Jamas escribas IDs ni UUIDs en tu respuesta. Solo en la linea REFS.
-REGLA - REFS obligatorio: Si sugieres prendas concretas, la linea REFS debe incluir sus IDs. Sin excepcion.
+REGLA - Sin numeros en texto: Jamas escribas los numeros [n] del armario en tu respuesta. Solo en la linea REFS.
+REGLA - REFS obligatorio: Si sugieres prendas concretas, la linea REFS debe incluir sus numeros, p. ej. REFS:[3,7,12]. Sin excepcion.
+REGLA - Fotos: la app muestra automaticamente las fotos de las prendas de REFS debajo de tu mensaje. Nunca digas que no puedes mostrar fotos ni imagenes.
+REGLA - Formato: texto plano, sin negritas ni markdown (nada de ** ni #).
 REGLA - Variedad: Cuando pidan mas opciones, sugiere prendas diferentes a las ya mostradas.
 ${avoidLine}
 FORMATO (siempre dos partes):
 Texto de respuesta.
-REFS:[id1,id2] o REFS:[]
+REFS:[n1,n2] o REFS:[]
 ${preferencesContext}${weatherContext ? '\n' + weatherContext : ''}
 
 ARMARIO:
@@ -148,7 +154,7 @@ ${wardrobeLines || 'Vacio.'}`
       model: GROQ_MODEL,
       reasoning_effort: 'low',
       messages,
-      max_tokens: 250,
+      max_tokens: 700, // gpt-oss gasta parte en razonamiento interno; con 250 cortaba la respuesta (y la linea REFS)
       temperature: 0.65,
     })
 
@@ -166,21 +172,46 @@ ${wardrobeLines || 'Vacio.'}`
     const groqData = await groqRes.json()
     const raw = groqData.choices?.[0]?.message?.content ?? ''
 
-    const refsMatch = raw.match(/REFS:\[([^\]]*)\]/)
-    const clotheIds: string[] = refsMatch?.[1]
-      ? refsMatch[1].split(',').map((s: string) => s.trim()).filter(Boolean)
+    // REFS puede venir cortado (sin "]") si el modelo se queda sin tokens.
+    const refsMatch = raw.match(/REFS:\s*\[([^\]]*)\]?/)
+    const refTokens: string[] = refsMatch?.[1]
+      ? refsMatch[1].split(',').map((t: string) => t.trim()).filter(Boolean)
       : []
 
-    let reply = raw.replace(/\s*REFS:\[[^\]]*\]\s*$/m, '').trim()
-    reply = reply.replace(/\[ID:[^\]]+\]/g, '')
+    const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+    const picked: any[] = []
+    const pushUnique = (c: any) => { if (c && !picked.some((p) => p.id === c.id)) picked.push(c) }
+    for (const tok of refTokens) {
+      if (/^\d{1,3}$/.test(tok)) {
+        pushUnique(wardrobe[Number(tok) - 1])
+      } else {
+        // compatibilidad: UUID completo o prefijo (>=6 caracteres) de UUID
+        const t = tok.toLowerCase().replace(/^id:/, '')
+        if (t.length >= 6) pushUnique(wardrobe.find((c: any) => c.id.toLowerCase().startsWith(t)))
+      }
+    }
+
+    let reply = raw.replace(/\s*REFS:[\s\S]*$/m, '').trim()
+    reply = reply.replace(/\[(?:ID:)?[^\]]*\]/g, '')
     reply = reply.replace(/\bcon\s+ID[:\s]+[0-9a-f-]{36}\b/gi, '')
     reply = reply.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '')
-    reply = reply.replace(/\s{2,}/g, ' ').replace(/\(\s*\)/g, '').trim()
+    reply = reply.replace(/\*\*|__/g, '')            // sin markdown (el chat muestra texto plano)
+    reply = reply.replace(/[ \t]{2,}/g, ' ').replace(/\(\s*\)/g, '').trim()
 
-    const clothesMap: Record<string, any> = Object.fromEntries((clothes ?? []).map((c: any) => [c.id, c]))
-    const referencedClothes = clotheIds
-      .map((id) => clothesMap[id])
-      .filter(Boolean)
+    // Si el modelo no dio REFS validos pero nombra prendas del armario, las
+    // mostramos igualmente (las fotos nunca deberian depender de un formato).
+    if (picked.length === 0) {
+      const text = norm(reply)
+      for (const c of wardrobe) {
+        if (picked.length >= 5) break
+        const n = norm(String(c.name ?? '')).trim()
+        if (n.length >= 4 && text.includes(n)) pushUnique(c)
+      }
+    }
+
+    const referencedClothes = picked
+      .slice(0, 6)
       .map((c: any) => ({ id: c.id, name: c.name, image_url: c.image_url }))
 
     return jsonResponse({ reply, referenced_clothes: referencedClothes, weather: weatherContext })

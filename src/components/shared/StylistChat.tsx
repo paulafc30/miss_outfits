@@ -435,7 +435,7 @@ export default function StylistChat() {
                             ? 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 rounded-bl-sm'
                             : 'bg-surface border border-line text-ink rounded-bl-sm',
                     )}>
-                      {msg.content}
+                      <span className="whitespace-pre-line">{msg.content}</span>
                       {msg.isRateLimit && msg.retryText && (
                         <RateLimitCountdown
                           onRetry={() => retry(i)}

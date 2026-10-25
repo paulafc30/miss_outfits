@@ -6,6 +6,7 @@ import { colorHexByName } from '@/lib/colorPalette'
 import Combobox from '@/components/shared/Combobox'
 import DescriptionModal from '@/components/venta/DescriptionModal'
 import { useCategories } from '@/hooks/useCategories'
+import { useLocations, useCreateLocation, useDeleteLocation } from '@/hooks/useLocations'
 import { useSeasons, useClotheSeasonIds, useSetClotheSeasons } from '@/hooks/useSeasons'
 import { useBrands } from '@/hooks/useBrands'
 import { useCreateClothe, useDeleteClothe, useUpdateClothe } from '@/hooks/useClothes'
@@ -18,7 +19,7 @@ import { isImageUrl } from '@/lib/sharedItem'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { extractDominantColorName } from '@/lib/colorExtraction'
 import type { Clothe, ClothesStatus, ClotheImage } from '@/types/database'
-import { Loader2, Trash2, Wand2, X } from 'lucide-react'
+import { Loader2, Plus, Trash2, Wand2, X } from 'lucide-react'
 
 export interface ClothePrefill {
   name?: string
@@ -46,6 +47,9 @@ export default function ClotheForm({
 }) {
   const { user } = useAuth()
   const { data: categories = [] } = useCategories()
+  const { data: locations = [] } = useLocations()
+  const createLocation = useCreateLocation()
+  const deleteLocation = useDeleteLocation()
   const { data: seasons = [] } = useSeasons()
   const { data: existingSeasonIds = [] } = useClotheSeasonIds(clothe?.id)
   const setClotheSeasonsM = useSetClotheSeasons()
@@ -57,6 +61,10 @@ export default function ClotheForm({
 
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
+  const [locationId, setLocationId] = useState<string>('')
+  const [addingLocation, setAddingLocation] = useState(false)
+  const [newLocationName, setNewLocationName] = useState('')
+  const [locationError, setLocationError] = useState<string | null>(null)
   const [selectedSeasonIds, setSelectedSeasonIds] = useState<string[]>([])
   const [brand, setBrand] = useState('')
   const [size, setSize] = useState('')
@@ -81,6 +89,7 @@ export default function ClotheForm({
     if (clothe) {
       setName(clothe.name)
       setCategoryId(clothe.category_id ?? '')
+      setLocationId(clothe.location_id ?? '')
       setSelectedSeasonIds(existingSeasonIds)
       setBrand(clothe.brand ?? '')
       setSize(clothe.size ?? '')
@@ -163,6 +172,7 @@ export default function ClotheForm({
     user_id: user?.id ?? '',
     name: name.trim() || 'Sin nombre',
     category_id: categoryId || null,
+    location_id: locationId || null,
     image_url: null,
     image_path: null,
     notes: notes.trim() || null,
@@ -181,7 +191,7 @@ export default function ClotheForm({
     created_at: clothe?.created_at ?? new Date().toISOString(),
     updated_at: clothe?.updated_at ?? new Date().toISOString(),
     listed_at: clothe?.listed_at ?? null,
-  }), [clothe, user, name, categoryId, brand, size, colorSelections, material, tags, notes, price, defaultStatus])
+  }), [clothe, user, name, categoryId, locationId, brand, size, colorSelections, material, tags, notes, price, defaultStatus])
 
   async function syncImages(clotheId: string, userId: string) {
     const stillThere = new Set(
@@ -221,6 +231,7 @@ export default function ClotheForm({
       const payload: Partial<Clothe> & { name: string } = {
         name: name.trim(),
         category_id: categoryId || null,
+        location_id: locationId || null,
         brand: brand.trim() || null,
         size: size.trim() || null,
         color: colorNames[0] ?? null,  // se mantiene por backward compat con esquema antiguo
@@ -256,6 +267,44 @@ export default function ClotheForm({
       setError(getErrorMessage(err, 'Error al guardar'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleAddLocation() {
+    const name = newLocationName.trim()
+    if (!user || !name) return
+    setLocationError(null)
+    const existing = locations.find((l) => l.name.toLowerCase() === name.toLowerCase())
+    if (existing) {
+      setLocationId(existing.id)
+    } else {
+      try {
+        const created = await createLocation.mutateAsync({ user_id: user.id, name })
+        setLocationId(created.id)
+      } catch (err) {
+        setLocationError(getErrorMessage(err, 'No se pudo crear la ubicación'))
+        return
+      }
+    }
+    setNewLocationName('')
+    setAddingLocation(false)
+  }
+
+  async function handleDeleteLocation() {
+    const loc = locations.find((l) => l.id === locationId)
+    if (!loc) return
+    const ok = await confirm({
+      title: 'Eliminar ubicación',
+      message: `Vas a borrar la ubicación "${loc.name}". Las prendas que estén ahí se quedarán sin ubicación (no se borran).`,
+      confirmText: 'Eliminar',
+      destructive: true,
+    })
+    if (!ok) return
+    try {
+      await deleteLocation.mutateAsync(loc.id)
+      setLocationId('')
+    } catch (err) {
+      setLocationError(getErrorMessage(err, 'No se pudo eliminar la ubicación'))
     }
   }
 
@@ -305,6 +354,73 @@ export default function ClotheForm({
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="label">Ubicación</label>
+          <div className="flex gap-2">
+            <select
+              className="input flex-1"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              <option value="">— Sin ubicación —</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+            {locationId && (
+              <button
+                type="button"
+                onClick={handleDeleteLocation}
+                aria-label="Eliminar ubicación seleccionada"
+                className="btn-secondary px-3"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {addingLocation ? (
+            <div className="flex gap-2 mt-2">
+              <input
+                className="input flex-1"
+                autoFocus
+                maxLength={60}
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); void handleAddLocation() }
+                  if (e.key === 'Escape') { setAddingLocation(false); setNewLocationName('') }
+                }}
+                placeholder="Ej: Armario del pasillo"
+              />
+              <button
+                type="button"
+                onClick={() => void handleAddLocation()}
+                disabled={!newLocationName.trim() || createLocation.isPending}
+                className="btn-primary"
+              >
+                {createLocation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Añadir'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAddingLocation(false); setNewLocationName(''); setLocationError(null) }}
+                aria-label="Cancelar"
+                className="btn-secondary px-3"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingLocation(true)}
+              className="mt-2 text-xs font-semibold text-brand-700 hover:text-brand-800 flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" /> Añadir ubicación
+            </button>
+          )}
+          {locationError && <p className="text-xs text-red-600 mt-1">{locationError}</p>}
         </div>
 
         <div>

@@ -35,6 +35,13 @@ export interface Category {
   created_at: string
 }
 
+export interface Location {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
+
 export interface Season {
   id: string
   user_id: string | null  // null = global
@@ -51,6 +58,8 @@ export interface Clothe {
   user_id: string
   name: string
   category_id: string | null
+  /** Ubicación física de la prenda (armario, cómoda...). */
+  location_id: string | null
   image_url: string | null
   image_path: string | null
   notes: string | null

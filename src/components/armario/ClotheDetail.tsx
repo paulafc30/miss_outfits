@@ -4,6 +4,7 @@ import ImageCarousel from '@/components/shared/ImageCarousel'
 import CompleteTheLook from '@/components/armario/CompleteTheLook'
 import { useChangeClothesStatus, useClothes } from '@/hooks/useClothes'
 import { useCategories } from '@/hooks/useCategories'
+import { useLocations } from '@/hooks/useLocations'
 import { useProfile } from '@/hooks/useProfile'
 import { colorHexByName } from '@/components/shared/ColorPicker'
 import { useConfirm } from '@/components/shared/ConfirmModal'
@@ -12,7 +13,7 @@ import { checkFit, FIT_META } from '@/lib/sizeFit'
 import { cx, getErrorMessage } from '@/lib/utils'
 import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { Clothe } from '@/types/database'
-import { Pencil, Tag, Ruler } from 'lucide-react'
+import { Pencil, Tag, Ruler, MapPin } from 'lucide-react'
 
 export default function ClotheDetail({
   open,
@@ -33,6 +34,7 @@ export default function ClotheDetail({
   const { data: profile } = useProfile()
   const { data: closet = [] } = useClothes(['closet'])
   const { data: categories = [] } = useCategories()
+  const { data: locations = [] } = useLocations()
   const [galleryUrls, setGalleryUrls] = useState<string[]>([])
   const [moveError, setMoveError] = useState<string | null>(null)
   const [moving, setMoving] = useState(false)
@@ -101,12 +103,14 @@ export default function ClotheDetail({
         {(() => {
           const clotheColors = clothe.colors ?? (clothe.color ? [clothe.color] : [])
           const clotheHexes = clothe.color_hexes ?? []
-          const hasAny = clothe.brand || clothe.size || clotheColors.length > 0
+          const locationName = clothe.location_id ? locations.find((l) => l.id === clothe.location_id)?.name : undefined
+          const hasAny = clothe.brand || clothe.size || clotheColors.length > 0 || locationName
           if (!hasAny) return null
           return (
             <div className="flex flex-wrap gap-1.5">
               {clothe.brand && <span className="chip bg-surface-soft text-ink/80">{clothe.brand}</span>}
               {clothe.size && <span className="chip bg-surface-soft text-ink/80">Talla {clothe.size}</span>}
+              {locationName && <span className="chip bg-surface-soft text-ink/80"><MapPin className="w-3 h-3" />{locationName}</span>}
               {clotheColors.map((c, i) => {
                 // Preferimos el hex exacto guardado (slider de tono); si la
                 // prenda es antigua y no lo tiene, caemos al hex de familia.

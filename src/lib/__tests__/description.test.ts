@@ -12,6 +12,7 @@ function baseClothe(over: Partial<Clothe> = {}): Clothe {
     user_id: 'u',
     name: 'Camiseta blanca',
     category_id: null,
+    location_id: null,
     image_url: null,
     image_path: null,
     notes: null,

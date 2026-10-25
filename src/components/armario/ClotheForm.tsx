@@ -6,7 +6,7 @@ import { colorHexByName } from '@/lib/colorPalette'
 import Combobox from '@/components/shared/Combobox'
 import DescriptionModal from '@/components/venta/DescriptionModal'
 import { useCategories } from '@/hooks/useCategories'
-import { useLocations, useCreateLocation, useDeleteLocation } from '@/hooks/useLocations'
+import { useLocations, useCreateLocation, useRenameLocation, useDeleteLocation } from '@/hooks/useLocations'
 import { useSeasons, useClotheSeasonIds, useSetClotheSeasons } from '@/hooks/useSeasons'
 import { useBrands } from '@/hooks/useBrands'
 import { useCreateClothe, useDeleteClothe, useUpdateClothe } from '@/hooks/useClothes'
@@ -19,7 +19,7 @@ import { isImageUrl } from '@/lib/sharedItem'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { extractDominantColorName } from '@/lib/colorExtraction'
 import type { Clothe, ClothesStatus, ClotheImage } from '@/types/database'
-import { Loader2, Plus, Trash2, Wand2, X } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react'
 
 export interface ClothePrefill {
   name?: string
@@ -49,6 +49,7 @@ export default function ClotheForm({
   const { data: categories = [] } = useCategories()
   const { data: locations = [] } = useLocations()
   const createLocation = useCreateLocation()
+  const renameLocation = useRenameLocation()
   const deleteLocation = useDeleteLocation()
   const { data: seasons = [] } = useSeasons()
   const { data: existingSeasonIds = [] } = useClotheSeasonIds(clothe?.id)
@@ -62,7 +63,7 @@ export default function ClotheForm({
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [locationId, setLocationId] = useState<string>('')
-  const [addingLocation, setAddingLocation] = useState(false)
+  const [locationMode, setLocationMode] = useState<'add' | 'rename' | null>(null)
   const [newLocationName, setNewLocationName] = useState('')
   const [locationError, setLocationError] = useState<string | null>(null)
   const [selectedSeasonIds, setSelectedSeasonIds] = useState<string[]>([])
@@ -270,24 +271,36 @@ export default function ClotheForm({
     }
   }
 
-  async function handleAddLocation() {
+  function closeLocationEditor() {
+    setLocationMode(null)
+    setNewLocationName('')
+    setLocationError(null)
+  }
+
+  async function handleSaveLocation() {
     const name = newLocationName.trim()
     if (!user || !name) return
     setLocationError(null)
-    const existing = locations.find((l) => l.name.toLowerCase() === name.toLowerCase())
-    if (existing) {
-      setLocationId(existing.id)
-    } else {
-      try {
+    const sameName = locations.find((l) => l.name.toLowerCase() === name.toLowerCase())
+    try {
+      if (locationMode === 'rename') {
+        if (!locationId) return
+        if (sameName && sameName.id !== locationId) {
+          setLocationError('Ya tienes una ubicación con ese nombre')
+          return
+        }
+        await renameLocation.mutateAsync({ id: locationId, name })
+      } else if (sameName) {
+        setLocationId(sameName.id)
+      } else {
         const created = await createLocation.mutateAsync({ user_id: user.id, name })
         setLocationId(created.id)
-      } catch (err) {
-        setLocationError(getErrorMessage(err, 'No se pudo crear la ubicación'))
-        return
       }
+    } catch (err) {
+      setLocationError(getErrorMessage(err, 'No se pudo guardar la ubicación'))
+      return
     }
-    setNewLocationName('')
-    setAddingLocation(false)
+    closeLocationEditor()
   }
 
   async function handleDeleteLocation() {
@@ -372,6 +385,20 @@ export default function ClotheForm({
             {locationId && (
               <button
                 type="button"
+                onClick={() => {
+                  setLocationError(null)
+                  setNewLocationName(locations.find((l) => l.id === locationId)?.name ?? '')
+                  setLocationMode('rename')
+                }}
+                aria-label="Renombrar ubicación seleccionada"
+                className="btn-secondary px-3"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {locationId && (
+              <button
+                type="button"
                 onClick={handleDeleteLocation}
                 aria-label="Eliminar ubicación seleccionada"
                 className="btn-secondary px-3"
@@ -380,7 +407,7 @@ export default function ClotheForm({
               </button>
             )}
           </div>
-          {addingLocation ? (
+          {locationMode ? (
             <div className="flex gap-2 mt-2">
               <input
                 className="input flex-1"
@@ -389,22 +416,24 @@ export default function ClotheForm({
                 value={newLocationName}
                 onChange={(e) => setNewLocationName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); void handleAddLocation() }
-                  if (e.key === 'Escape') { setAddingLocation(false); setNewLocationName('') }
+                  if (e.key === 'Enter') { e.preventDefault(); void handleSaveLocation() }
+                  if (e.key === 'Escape') closeLocationEditor()
                 }}
                 placeholder="Ej: Armario del pasillo"
               />
               <button
                 type="button"
-                onClick={() => void handleAddLocation()}
-                disabled={!newLocationName.trim() || createLocation.isPending}
+                onClick={() => void handleSaveLocation()}
+                disabled={!newLocationName.trim() || createLocation.isPending || renameLocation.isPending}
                 className="btn-primary"
               >
-                {createLocation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Añadir'}
+                {createLocation.isPending || renameLocation.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : locationMode === 'rename' ? 'Guardar' : 'Añadir'}
               </button>
               <button
                 type="button"
-                onClick={() => { setAddingLocation(false); setNewLocationName(''); setLocationError(null) }}
+                onClick={closeLocationEditor}
                 aria-label="Cancelar"
                 className="btn-secondary px-3"
               >
@@ -414,7 +443,7 @@ export default function ClotheForm({
           ) : (
             <button
               type="button"
-              onClick={() => setAddingLocation(true)}
+              onClick={() => { setLocationError(null); setNewLocationName(''); setLocationMode('add') }}
               className="mt-2 text-xs font-semibold text-brand-700 hover:text-brand-800 flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" /> Añadir ubicación
@@ -465,11 +494,6 @@ export default function ClotheForm({
         </div>
 
         <div>
-          <label className="label">Material</label>
-          <Combobox value={material} onChange={setMaterial} suggestions={MATERIAL_OPTIONS} placeholder="Algodón" />
-        </div>
-
-        <div>
           <label className="label">Colores</label>
           <ColorPicker
             value={colorSelections}
@@ -513,6 +537,11 @@ export default function ClotheForm({
               </button>
             </div>
           )}
+        </div>
+
+        <div>
+          <label className="label">Material</label>
+          <Combobox value={material} onChange={setMaterial} suggestions={MATERIAL_OPTIONS} placeholder="Algodón" />
         </div>
 
         <div>

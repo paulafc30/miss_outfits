@@ -25,6 +25,18 @@ export function useCreateLocation() {
   })
 }
 
+export function useRenameLocation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }): Promise<Location> => {
+      const { data, error } = await supabase.from('locations').update({ name }).eq('id', id).select().single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations'] }),
+  })
+}
+
 export function useDeleteLocation() {
   const qc = useQueryClient()
   return useMutation({

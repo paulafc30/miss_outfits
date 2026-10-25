@@ -45,6 +45,7 @@ declare
   v_clothe_slug text;
   v_colors text[];
   v_hexes text[];
+  v_loc jsonb;
 begin
   if v_uid is null or not public.is_anonymous_session() then
     raise exception 'seed_demo_data solo se puede ejecutar desde una sesion de demo';
@@ -197,6 +198,37 @@ begin
   insert into public.inspirations (user_id, kind, title, url, image_url, position) values
     (v_uid, 'store', 'Tienda de ejemplo: básicos', 'https://example.com/basicos', null, 0),
     (v_uid, 'store', 'Tienda de ejemplo: abrigos', 'https://example.com/abrigos', null, 1);
+
+  -- ---------------------------------------------------------------
+  -- Ubicaciones (migracion 0029). Bloque tolerante: si 0029 aun no esta
+  -- aplicada, se omite sin error (dynamic SQL, no falla al crear la funcion).
+  -- ---------------------------------------------------------------
+  if exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'clothes' and column_name = 'location_id'
+  ) then
+    execute $q$
+      insert into public.locations (user_id, name)
+      select $1, n
+        from unnest(array['Armario empotrado','Armario de la habitación','Cómoda','Casa de mis padres']) as n
+      on conflict (user_id, name) do nothing
+    $q$ using v_uid;
+
+    v_loc := '{
+      "abrigo-camel":"Armario empotrado","chaqueta-negra":"Armario empotrado","vestido-rojo":"Armario empotrado",
+      "botas-marron":"Armario empotrado","vestido-floral":"Armario empotrado",
+      "camiseta-blanca":"Armario de la habitación","camiseta-rosa":"Armario de la habitación",
+      "top-azul-marino":"Armario de la habitación","blusa-beige":"Armario de la habitación",
+      "vaqueros":"Armario de la habitación","pantalon-negro":"Armario de la habitación",
+      "zapatillas-blancas":"Cómoda","bolso-beige":"Cómoda","top-deportivo":"Cómoda","leggings-deportivos":"Cómoda",
+      "camiseta-amarilla":"Casa de mis padres","pantalon-morado":"Casa de mis padres"
+    }'::jsonb;
+
+    for v_slug in select jsonb_object_keys(v_loc) loop
+      execute 'update public.clothes set location_id = (select id from public.locations where user_id = $1 and name = $2) where id = $3 and user_id = $1'
+        using v_uid, v_loc ->> v_slug, (v_ids ->> v_slug)::uuid;
+    end loop;
+  end if;
 end;
 $$;
 

@@ -3,7 +3,7 @@
 -- =====================================================================
 -- Cada prenda puede tener una ubicacion ("Armario empotrado", "Armario de
 -- la habitacion", "Casa de mis padres"...). Las ubicaciones son por usuaria
--- y editables; al crear un perfil se generan unas por defecto.
+-- y las crea ella misma (empiezan vacias).
 -- Idempotente: se puede ejecutar varias veces.
 -- =====================================================================
 
@@ -32,28 +32,8 @@ alter table public.clothes
 
 create index if not exists clothes_location_id_idx on public.clothes (location_id);
 
--- Ubicaciones por defecto al crear un perfil (mismo patron que las categorias)
-create or replace function public.create_default_locations()
-returns trigger as $$
-begin
-  insert into public.locations (user_id, name) values
-    (new.id, 'Armario empotrado'),
-    (new.id, 'Armario de la habitación'),
-    (new.id, 'Cómoda'),
-    (new.id, 'Casa de mis padres')
-  on conflict (user_id, name) do nothing;
-  return new;
-end;
-$$ language plpgsql security definer set search_path = public;
-
+-- No se crean ubicaciones por defecto: cada usuaria anade las suyas desde el
+-- formulario de la prenda. Si una version anterior de esta migracion creo un
+-- trigger con valores por defecto, se elimina aqui.
 drop trigger if exists profiles_create_default_locations on public.profiles;
-create trigger profiles_create_default_locations
-  after insert on public.profiles
-  for each row execute procedure public.create_default_locations();
-
--- Cuentas ya existentes: se les crean las mismas ubicaciones por defecto
-insert into public.locations (user_id, name)
-select p.id, l.name
-  from public.profiles p
-  cross join (values ('Armario empotrado'), ('Armario de la habitación'), ('Cómoda'), ('Casa de mis padres')) as l(name)
-on conflict (user_id, name) do nothing;
+drop function if exists public.create_default_locations();

@@ -5,6 +5,8 @@ export interface SearchFilters {
   sizes: string[]
   materials: string[]
   brands: string[]
+  /** IDs de ubicación; '__none__' = prendas sin ubicación. */
+  locations: string[]
 }
 
 const EMPTY_FILTERS: SearchFilters = {
@@ -12,6 +14,7 @@ const EMPTY_FILTERS: SearchFilters = {
   sizes: [],
   materials: [],
   brands: [],
+  locations: [],
 }
 
 interface SearchState {

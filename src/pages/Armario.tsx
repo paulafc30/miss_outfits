@@ -9,7 +9,8 @@ import { useClothes } from '@/hooks/useClothes'
 import { useCategories } from '@/hooks/useCategories'
 import { useOutfits, OutfitWithItems } from '@/hooks/useOutfits'
 import { useSearchStore } from '@/store/search'
-import SearchFilterPanel from '@/components/shared/SearchFilterPanel'
+import SearchFilterPanel, { NO_LOCATION } from '@/components/shared/SearchFilterPanel'
+import { useLocations } from '@/hooks/useLocations'
 import ClotheCard from '@/components/armario/ClotheCard'
 import ClotheForm from '@/components/armario/ClotheForm'
 import ClotheDetail from '@/components/armario/ClotheDetail'
@@ -29,6 +30,7 @@ export default function Armario() {
   const { data: categories = [] } = useCategories()
   const { data: outfits = [] } = useOutfits()
   const { query, filters, setFiltersEnabled } = useSearchStore()
+  const { data: locations = [] } = useLocations()
 
   // El panel de filtros (colores/talla/tejido/marca) solo existe en el DOM
   // dentro de la tab "Prendas" — avisamos a la barra de búsqueda global para
@@ -73,7 +75,8 @@ export default function Armario() {
     filters.colors.length ||
     filters.sizes.length ||
     filters.materials.length ||
-    filters.brands.length
+    filters.brands.length ||
+    filters.locations.length
   )
 
   const filtered = useMemo(() => {
@@ -85,18 +88,21 @@ export default function Armario() {
       if (filters.sizes.length > 0 && !filters.sizes.includes(c.size ?? '')) return false
       if (filters.materials.length > 0 && !filters.materials.some((fm) => c.material?.toLowerCase().includes(fm.toLowerCase()))) return false
       if (filters.brands.length > 0 && !filters.brands.includes(c.brand ?? '')) return false
+      if (filters.locations.length > 0 && !filters.locations.includes(c.location_id ?? NO_LOCATION)) return false
       if (!q) return true
       const cat = categories.find((cc) => cc.id === c.category_id)
+      const loc = locations.find((l) => l.id === c.location_id)
       return (
         c.name.toLowerCase().includes(q) ||
         (c.brand?.toLowerCase().includes(q) ?? false) ||
         allColors.some((col) => col.toLowerCase().includes(q)) ||
         (c.size?.toLowerCase().includes(q) ?? false) ||
         c.tags.some((t) => t.toLowerCase().includes(q)) ||
-        (cat?.name.toLowerCase().includes(q) ?? false)
+        (cat?.name.toLowerCase().includes(q) ?? false) ||
+        (loc?.name.toLowerCase().includes(q) ?? false)
       )
     })
-  }, [clothes, query, filterCat, filters, categories])
+  }, [clothes, query, filterCat, filters, categories, locations])
 
   const catMap = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories])
 
@@ -175,7 +181,7 @@ export default function Armario() {
             })}
           </div>
 
-          <SearchFilterPanel brands={uniqueBrands} />
+          <SearchFilterPanel brands={uniqueBrands} locations={locations} />
 
           <DailyOutfitsCarousel />
 

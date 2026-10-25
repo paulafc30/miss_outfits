@@ -2,10 +2,15 @@ import { useSearchStore } from '@/store/search'
 import { CLOTHING_COLORS } from '@/components/shared/ColorPicker'
 import { SIZE_OPTIONS, MATERIAL_OPTIONS } from '@/lib/options'
 import { cx } from '@/lib/utils'
+import type { Location } from '@/types/database'
+
+export const NO_LOCATION = '__none__'
 
 interface Props {
   /** Marcas únicas extraídas de las prendas del usuario */
   brands: string[]
+  /** Ubicaciones de la usuaria (armario, cómoda...) */
+  locations?: Location[]
 }
 
 function PillButton({
@@ -33,7 +38,7 @@ function PillButton({
   )
 }
 
-export default function SearchFilterPanel({ brands }: Props) {
+export default function SearchFilterPanel({ brands, locations = [] }: Props) {
   const { filtersOpen, filters, toggleFilter } = useSearchStore()
 
   if (!filtersOpen) return null
@@ -94,6 +99,23 @@ export default function SearchFilterPanel({ brands }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Ubicación */}
+      {locations.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Ubicación</p>
+          <div className="flex flex-wrap gap-1.5">
+            {locations.map((l) => (
+              <PillButton key={l.id} active={filters.locations.includes(l.id)} onClick={() => toggleFilter('locations', l.id)}>
+                {l.name}
+              </PillButton>
+            ))}
+            <PillButton active={filters.locations.includes(NO_LOCATION)} onClick={() => toggleFilter('locations', NO_LOCATION)}>
+              Sin ubicación
+            </PillButton>
+          </div>
+        </div>
+      )}
 
       {/* Marcas */}
       {brands.length > 0 && (

@@ -58,7 +58,7 @@
 - RLS en todas las tablas + GRANTs explícitos.
 - Buckets `clothes-images` y `avatars` con políticas por usuario.
 - PWA instalable (iOS + Android).
-- 29 migraciones numeradas (0001–0029).
+- 30 migraciones numeradas (0001–0030).
 - Tests unitarios (Vitest): bodyType, sizeFit, description, importParse, utils, sharedItem, authErrors, clotheType.
 - CI en GitHub Actions: lint, typecheck, tests y build.
 - **Modo demo**: sesiones anónimas + `seed_demo_data()` (ver ADR 0009).

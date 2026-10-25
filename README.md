@@ -38,7 +38,7 @@ src/
   lib/          funciones puras sin React (fáciles de testear)
   types/        tipos del esquema
 supabase/
-  migrations/   0001…0029, numeradas e idempotentes (RLS + GRANTs explícitos)
+  migrations/   0001…0030, numeradas e idempotentes (RLS + GRANTs explícitos)
   functions/    Edge Functions: suggest-outfit, daily-outfits, chat-stylist (+ _shared/)
 docs/           ARCHITECTURE, CODE_STYLE y ADRs (decisiones de diseño)
 ```

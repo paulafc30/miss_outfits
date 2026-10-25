@@ -11,6 +11,7 @@ import { useOutfits, OutfitWithItems } from '@/hooks/useOutfits'
 import { useSearchStore } from '@/store/search'
 import SearchFilterPanel, { NO_LOCATION } from '@/components/shared/SearchFilterPanel'
 import { useLocations } from '@/hooks/useLocations'
+import { useSeasons, useClotheSeasons } from '@/hooks/useSeasons'
 import ClotheCard from '@/components/armario/ClotheCard'
 import ClotheForm from '@/components/armario/ClotheForm'
 import ClotheDetail from '@/components/armario/ClotheDetail'
@@ -31,6 +32,30 @@ export default function Armario() {
   const { data: outfits = [] } = useOutfits()
   const { query, filters, setFiltersEnabled } = useSearchStore()
   const { data: locations = [] } = useLocations()
+  const { data: seasons = [] } = useSeasons()
+  const { data: clotheSeasons = {} } = useClotheSeasons()
+
+  // Filtro rápido por temporada (vacío = mostrar todas). Se recuerda entre
+  // visitas en este navegador; si localStorage no está disponible, no pasa nada.
+  const SEASON_FILTER_KEY = 'miss-outfits:armario-seasons'
+  const [seasonFilter, setSeasonFilter] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(SEASON_FILTER_KEY)
+      const parsed: unknown = raw ? JSON.parse(raw) : []
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+    } catch {
+      return []
+    }
+  })
+  function updateSeasonFilter(next: string[]) {
+    setSeasonFilter(next)
+    try { localStorage.setItem(SEASON_FILTER_KEY, JSON.stringify(next)) } catch { /* sin storage */ }
+  }
+  // ignora ids de temporadas que ya no existen (borradas)
+  const activeSeasonIds = useMemo(
+    () => seasonFilter.filter((id) => seasons.some((se) => se.id === id)),
+    [seasonFilter, seasons],
+  )
 
   // El panel de filtros (colores/talla/tejido/marca) solo existe en el DOM
   // dentro de la tab "Prendas" — avisamos a la barra de búsqueda global para
@@ -76,13 +101,19 @@ export default function Armario() {
     filters.sizes.length ||
     filters.materials.length ||
     filters.brands.length ||
-    filters.locations.length
+    filters.locations.length ||
+    activeSeasonIds.length
   )
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return clothes.filter((c) => {
       if (filterCat && c.category_id !== filterCat) return false
+      if (activeSeasonIds.length > 0) {
+        const own = clotheSeasons[c.id] ?? []
+        // las prendas sin temporada asignada se muestran siempre (no se ocultan por error)
+        if (own.length > 0 && !own.some((id) => activeSeasonIds.includes(id))) return false
+      }
       const allColors = c.colors && c.colors.length > 0 ? c.colors : (c.color ? [c.color] : [])
       if (filters.colors.length > 0 && !filters.colors.some((fc) => allColors.some((cc) => cc.toLowerCase() === fc.toLowerCase()))) return false
       if (filters.sizes.length > 0 && !filters.sizes.includes(c.size ?? '')) return false
@@ -102,7 +133,7 @@ export default function Armario() {
         (loc?.name.toLowerCase().includes(q) ?? false)
       )
     })
-  }, [clothes, query, filterCat, filters, categories, locations])
+  }, [clothes, query, filterCat, filters, categories, locations, activeSeasonIds, clotheSeasons])
 
   const catMap = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories])
 
@@ -180,6 +211,45 @@ export default function Armario() {
               )
             })}
           </div>
+
+          {seasons.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1" role="group" aria-label="Filtrar por temporada">
+              <span className="text-xs font-semibold text-muted uppercase tracking-wide shrink-0">Temporada</span>
+              <button
+                type="button"
+                onClick={() => updateSeasonFilter([])}
+                className={cx(
+                  'chip whitespace-nowrap font-medium border-2 transition shrink-0',
+                  activeSeasonIds.length === 0
+                    ? 'bg-brand-gradient text-white border-transparent shadow-soft'
+                    : 'bg-surface border-line-soft text-muted hover:text-ink'
+                )}
+              >
+                Todas
+              </button>
+              {seasons.map((se) => {
+                const active = activeSeasonIds.includes(se.id)
+                return (
+                  <button
+                    key={se.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateSeasonFilter(
+                      active ? activeSeasonIds.filter((id) => id !== se.id) : [...activeSeasonIds, se.id]
+                    )}
+                    className={cx(
+                      'chip whitespace-nowrap font-medium gap-1.5 transition shrink-0 border-2',
+                      active ? 'bg-surface text-ink shadow-soft' : 'bg-surface border-line-soft text-muted hover:text-ink'
+                    )}
+                    style={active ? { borderColor: se.color } : undefined}
+                  >
+                    <span aria-hidden>{se.icon}</span>
+                    {se.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <SearchFilterPanel brands={uniqueBrands} locations={locations} />
 

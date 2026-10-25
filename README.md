@@ -49,7 +49,7 @@ Las decisiones de diseño están razonadas en [`docs/adr/`](docs/adr/README.md) 
 
 - **RLS en todas las tablas**: cada usuaria solo ve sus filas. Los GRANTs son explícitos y mínimos.
 - **Edge Functions**: autenticación por JWT, CORS limitado al dominio de producción, validación de entradas (ocasión, coordenadas, historial del chat…), **rate limit por usuario** (más estricto para cuentas de demo), errores genéricos al cliente y detalle solo en logs.
-- **CSP y cabeceras** (`vercel.json`): `default-src 'self'`, sin `unsafe-eval`, `frame-ancestors 'none'`, etc.
+- **CSP y cabeceras** (`vercel.json`): `default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, etc. `script-src` incluye `'unsafe-eval'` únicamente porque el quitafondos que corre en el navegador (`@imgly/background-removal`) genera código con `new Function` internamente; está documentado como compromiso conocido (alternativa: moverlo a servidor).
 - Las claves privadas (`GROQ_API_KEY`, `service_role`) viven **solo** en los secrets de Supabase; el frontend usa únicamente la clave `anon`, protegida por RLS.
 - La entrada que llega por URL (bookmarklets, compartir) se valida con Zod y las URLs de usuario solo se enlazan si son `http(s)`.
 

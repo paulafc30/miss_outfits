@@ -112,4 +112,4 @@ Detalles y alternativas descartadas en [ADR 0009](docs/adr/0009-demo-mode-anonym
 
 ## Estado del proyecto
 
-La integración con Pinterest está **pausada** (la API denegó el permiso); el código se conserva comentado y documentado para poder retomarla. Ver [`ROADMAP.md`](ROADMAP.md) para lo implementado y lo pendiente.
+La integración con Pinterest está **pausada** (la API denegó el permiso); el código se conserva comentado y documentado para poder retomarla. Ver [`ROADMAP.md`](ROADMAP.md) para lo implementado y lo pendiente. Ideas futuras (p. ej. una sección opcional de "Colección" para objetos no relacionados con ropa) están apuntadas en la sección *Backlog* del mismo archivo.

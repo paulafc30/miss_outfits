@@ -3,7 +3,7 @@
 > Documento vivo. Aquí queda registrado **todo** lo que se ha construido,
 > lo que está en curso, lo que está pendiente y las ideas para el futuro.
 
-Última actualización: 2026-10-09
+Última actualización: 2026-10-27
 
 ---
 
@@ -36,6 +36,8 @@
 - Compartir outfit como imagen PNG (canvas collage 1080×1080).
 - Búsqueda global filtrando por nombre, marca, color, talla, etiquetas, categoría.
 - Calendario mensual: wears diarios, stats del mes, planeador de looks futuros.
+- **Ubicaciones** de las prendas (armario empotrado, habitación, casa de los padres…): las crea la propia usuaria desde el formulario (empiezan vacías), se pueden renombrar y borrar, y se filtran desde el panel de filtros (migraciones 0029–0030).
+- **Filtro rápido por temporada** en el listado de prendas (multi-selección, se recuerda entre visitas).
 - Reconocimiento automático de color dominante en la primera foto.
 
 ### Ropa a la Venta
@@ -90,6 +92,7 @@
 - Tests E2E con Playwright.
 - Tests de hooks de React Query.
 - Exportar a PDF estilo lookbook.
+- **Colección (idea, sin empezar):** sección opcional y oculta (interruptor en Perfil, apagada por defecto) para inventariar objetos que no son ropa, p. ej. merchandising de anime: figuras, camisetas de eventos, pósters, llaveros. Sería una tabla propia (`collection_items`) separada de `clothes`, con fotos (reutilizando `MultiImagePicker`), categoría, serie/personaje, dónde y cuándo se compró, precio opcional y notas. La parte de "quiero comprar" ya la cubre la sección **Deseos**, así que no se duplicaría. Valorar solo si se llega a usar de verdad.
 
 ---
 

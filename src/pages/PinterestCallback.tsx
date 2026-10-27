@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
 /**
- * Pinterest redirige aqui tras la autorizacion OAuth.
+ * Pinterest redirige aquí tras la autorización OAuth.
  * URL: /pinterest-callback?code=CODE&state=STATE
  * Intercambia el code por un access_token via Edge Function y redirige a /inspiracion.
  */
@@ -18,7 +18,7 @@ export default function PinterestCallback() {
     const error = params.get('error')
 
     if (error || !code) {
-      setErrorMsg(error === 'access_denied' ? 'Cancelaste la conexion con Pinterest.' : 'Error en la autorizacion de Pinterest.')
+      setErrorMsg(error === 'access_denied' ? 'Cancelaste la conexión con Pinterest.' : 'Error en la autorización de Pinterest.')
       setStatus('error')
       return
     }

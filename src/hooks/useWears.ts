@@ -45,6 +45,48 @@ export function useTodayPlannedWears() {
   })
 }
 
+/**
+ * Usos de una prenda: cuántas veces se ha llevado (wears ya hechos, no
+ * planeados) contando tanto los registros directos de la prenda como los de
+ * los outfits que la incluyen, y la fecha del último.
+ */
+export function useClotheWearStats(clotheId: string | undefined) {
+  return useQuery({
+    queryKey: ['wears', 'clothe-stats', clotheId],
+    enabled: !!clotheId,
+    queryFn: async (): Promise<{ count: number; lastDate: string | null }> => {
+      const dates: string[] = []
+
+      const { data: direct, error: e1 } = await supabase
+        .from('wears')
+        .select('wear_date')
+        .eq('clothe_id', clotheId!)
+        .eq('planned', false)
+      if (e1) throw e1
+      for (const w of direct ?? []) dates.push(w.wear_date)
+
+      const { data: items, error: e2 } = await supabase
+        .from('outfit_items')
+        .select('outfit_id')
+        .eq('clothe_id', clotheId!)
+      if (e2) throw e2
+      const outfitIds = [...new Set((items ?? []).map((i) => i.outfit_id))]
+      if (outfitIds.length > 0) {
+        const { data: viaOutfit, error: e3 } = await supabase
+          .from('wears')
+          .select('wear_date')
+          .in('outfit_id', outfitIds)
+          .eq('planned', false)
+        if (e3) throw e3
+        for (const w of viaOutfit ?? []) dates.push(w.wear_date)
+      }
+
+      dates.sort()
+      return { count: dates.length, lastDate: dates.length ? dates[dates.length - 1] : null }
+    },
+  })
+}
+
 export function useCreateWear() {
   const qc = useQueryClient()
   return useMutation({

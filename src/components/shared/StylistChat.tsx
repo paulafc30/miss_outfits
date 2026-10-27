@@ -118,7 +118,7 @@ function FeedbackButtons({
 
   return (
     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-line/60">
-      <span className="text-xs text-muted flex-1">Te sirve esta sugerencia?</span>
+      <span className="text-xs text-muted flex-1">¿Te sirve esta sugerencia?</span>
       <button
         type="button"
         onClick={() => onFeedback('positive')}
@@ -399,7 +399,7 @@ export default function StylistChat() {
                   <button
                     onClick={requestLocation}
                     className="p-2 rounded-lg hover:bg-surface-soft text-muted hover:text-brand-700 transition"
-                    title="Activar ubicacion para recomendaciones por tiempo"
+                    title="Activar ubicación para recomendaciones por tiempo"
                   >
                     <MapPin className="w-4 h-4" />
                   </button>

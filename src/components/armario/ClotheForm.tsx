@@ -26,6 +26,10 @@ export interface ClothePrefill {
   url?: string        // si parece imagen, se usa como primera foto
   notes?: string
   price?: number
+  /** Precio al que se compró (p. ej. el precio del deseo que acabas de comprar). */
+  purchasePrice?: number
+  /** Foto ya conocida (URL) para usarla como portada. */
+  imageUrl?: string
   /** Si viene desde share de Wallapop/Vinted, activamos su toggle al crear. */
   platform?: 'wallapop' | 'vinted'
   /** Status forzado al crear (e.g. 'en_venta' cuando viene de Wallapop). */
@@ -38,12 +42,15 @@ export default function ClotheForm({
   clothe,
   defaultStatus = 'closet',
   prefill,
+  onSaved,
 }: {
   open: boolean
   onClose: () => void
   clothe?: Clothe | null
   defaultStatus?: ClothesStatus
   prefill?: ClothePrefill
+  /** Se llama una vez guardada la prenda (antes de cerrar). */
+  onSaved?: () => void
 }) {
   const { user } = useAuth()
   const { data: categories = [] } = useCategories()
@@ -76,6 +83,7 @@ export default function ClotheForm({
   const [tags, setTags] = useState('')
   const [notes, setNotes] = useState('')
   const [price, setPrice] = useState<string>('')
+  const [purchasePrice, setPurchasePrice] = useState<string>('')
   const [images, setImages] = useState<PickerImage[]>([])
   const [originalImages, setOriginalImages] = useState<ClotheImage[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -103,6 +111,7 @@ export default function ClotheForm({
       setTags(clothe.tags.join(', '))
       setNotes(clothe.notes ?? '')
       setPrice(clothe.price ? String(clothe.price) : '')
+      setPurchasePrice(clothe.purchase_price != null ? String(clothe.purchase_price) : '')
       supabase
         .from('clothe_images')
         .select('*')
@@ -120,9 +129,12 @@ export default function ClotheForm({
       setTags('')
       setNotes(prefill?.notes ?? '')
       setPrice(prefill?.price != null ? String(prefill.price) : '')
+      setPurchasePrice(prefill?.purchasePrice != null ? String(prefill.purchasePrice) : '')
       setOriginalImages([])
       const sharedUrl = prefill?.url ?? ''
-      if (sharedUrl && isImageUrl(sharedUrl)) {
+      if (prefill?.imageUrl) {
+        setImages([{ kind: 'new-url', tempId: crypto.randomUUID(), url: prefill.imageUrl }])
+      } else if (sharedUrl && isImageUrl(sharedUrl)) {
         // URL directa a una imagen — la usamos como primera foto
         setImages([{ kind: 'new-url', tempId: crypto.randomUUID(), url: sharedUrl }])
       } else if (sharedUrl) {
@@ -182,6 +194,7 @@ export default function ClotheForm({
     on_wallapop: clothe?.on_wallapop ?? false,
     on_vinted: clothe?.on_vinted ?? false,
     price: price ? Number(price) : null,
+    purchase_price: purchasePrice ? Number(purchasePrice) : null,
     sold_at: clothe?.sold_at ?? null,
     brand: brand.trim() || null,
     size: size.trim() || null,
@@ -192,7 +205,7 @@ export default function ClotheForm({
     created_at: clothe?.created_at ?? new Date().toISOString(),
     updated_at: clothe?.updated_at ?? new Date().toISOString(),
     listed_at: clothe?.listed_at ?? null,
-  }), [clothe, user, name, categoryId, locationId, brand, size, colorSelections, material, tags, notes, price, defaultStatus])
+  }), [clothe, user, name, categoryId, locationId, brand, size, colorSelections, material, tags, notes, price, purchasePrice, defaultStatus])
 
   async function syncImages(clotheId: string, userId: string) {
     const stillThere = new Set(
@@ -242,6 +255,7 @@ export default function ClotheForm({
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
         notes: notes.trim() || null,
         price: price ? Number(price) : null,
+        purchase_price: purchasePrice ? Number(purchasePrice) : null,
       }
 
       // Al crear desde share de Wallapop/Vinted, activar el toggle correspondiente
@@ -263,6 +277,7 @@ export default function ClotheForm({
 
       await syncImages(clotheId, user.id)
       await setClotheSeasonsM.mutateAsync({ clotheId, seasonIds: selectedSeasonIds })
+      onSaved?.()
       onClose()
     } catch (err) {
       setError(getErrorMessage(err, 'Error al guardar'))
@@ -550,8 +565,14 @@ export default function ClotheForm({
         </div>
 
         <div>
-          <label className="label">Precio (opcional)</label>
+          <label className="label">Precio de venta (opcional)</label>
           <input className="input" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="20.00" />
+        </div>
+
+        <div>
+          <label className="label">Precio de compra (opcional)</label>
+          <input className="input" type="number" step="0.01" min="0" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} placeholder="35.00" />
+          <p className="text-[11px] text-muted mt-1">Lo que te costó. Sirve para calcular tu margen cuando la vendas.</p>
         </div>
 
         <div>
@@ -562,7 +583,7 @@ export default function ClotheForm({
               onClick={() => setDescOpen(true)}
               disabled={!name.trim()}
               className="btn-ghost text-xs py-0.5 px-2 gap-1"
-              title="Generar descripcion con IA"
+              title="Generar descripción con IA"
             >
               <Wand2 className="w-3 h-3" /> Generar con IA
             </button>

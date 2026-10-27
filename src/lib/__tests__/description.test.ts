@@ -21,6 +21,7 @@ function baseClothe(over: Partial<Clothe> = {}): Clothe {
     on_wallapop: false,
     on_vinted: false,
     price: 12,
+    purchase_price: null,
     sold_at: null,
     listed_at: null,
     brand: 'Zara',

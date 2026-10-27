@@ -229,6 +229,20 @@ begin
         using v_uid, v_loc ->> v_slug, (v_ids ->> v_slug)::uuid;
     end loop;
   end if;
+
+  -- Precio de compra de las prendas de venta (migracion 0031), para que las
+  -- estadisticas de Venta tengan datos en la demo. Se omite si no esta aplicada.
+  if exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'clothes' and column_name = 'purchase_price'
+  ) then
+    execute 'update public.clothes set purchase_price = $2 where id = $1 and user_id = $3'
+      using (v_ids ->> 'vestido-marino')::uuid, 35, v_uid;
+    execute 'update public.clothes set purchase_price = $2 where id = $1 and user_id = $3'
+      using (v_ids ->> 'bolso-negro')::uuid, 20, v_uid;
+    execute 'update public.clothes set purchase_price = $2 where id = $1 and user_id = $3'
+      using (v_ids ->> 'zapatillas-azules')::uuid, 40, v_uid;
+  end if;
 end;
 $$;
 

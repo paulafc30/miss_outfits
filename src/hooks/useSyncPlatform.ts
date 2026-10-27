@@ -86,7 +86,7 @@ export function useSyncPlatform() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No hay sesion activa')
+      if (!user) throw new Error('No hay sesión activa')
 
       const idField = platform === 'vinted' ? 'vinted_id' : 'wallapop_id'
       const conflictCols = platform === 'vinted' ? 'user_id,vinted_id' : 'user_id,wallapop_id'

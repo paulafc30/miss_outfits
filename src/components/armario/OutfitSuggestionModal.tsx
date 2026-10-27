@@ -160,7 +160,7 @@ export default function OutfitSuggestionModal({ onClose }: { onClose: () => void
       {!outfits && !loading && (
         <>
           <div className="space-y-2">
-            <p className="text-xs text-muted">Ocasion</p>
+            <p className="text-xs text-muted">Ocasión</p>
             <div className="grid grid-cols-5 gap-1">
               {OCCASIONS.map((o) => (
                 <button
@@ -195,7 +195,7 @@ export default function OutfitSuggestionModal({ onClose }: { onClose: () => void
         <div className="py-8 flex flex-col items-center gap-3 text-center">
           <Loader2 className="w-7 h-7 text-brand-700 animate-spin" />
           <div>
-            <p className="text-sm font-medium text-ink">Claude esta combinando tu armario...</p>
+            <p className="text-sm font-medium text-ink">Ada está combinando tu armario…</p>
             <p className="text-xs text-muted mt-0.5">Esto tarda unos segundos</p>
           </div>
         </div>

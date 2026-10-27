@@ -40,6 +40,12 @@
 - **Filtro rápido por temporada** en el listado de prendas (multi-selección, se recuerda entre visitas).
 - Reconocimiento automático de color dominante en la primera foto.
 
+### Uso de prendas
+- Ficha de prenda: «Me la puse hoy» (registra un uso en el calendario), contador de usos y última vez.
+
+### Cuenta
+- Eliminar cuenta (Perfil → Zona de peligro): Edge Function `delete-account` borra fotos y el usuario; el resto cae por `ON DELETE CASCADE`.
+
 ### Ropa a la Venta
 - Flujo Baúl → En Venta → Vendida → Archivada.
 - Toggles Wallapop / Vinted.
@@ -47,8 +53,11 @@
 - Generador de descripciones automáticas (Wallapop + Vinted).
 - **(PAUSADO, oculto en la UI)** Sync desde Wallapop/Vinted: bookmarklets JavaScript que escanean el perfil de la usuaria en cada plataforma y redirigen a la app con los datos en base64. Upsert por `vinted_id`/`wallapop_id` para evitar duplicados.
 - Web Share Target: compartir desde Wallapop/Vinted/tiendas directamente a la app.
+- Precio de compra opcional (`purchase_price`, migración 0031) y estadísticas en la pestaña Vendida: ingresos, invertido/beneficio, mejor margen y plataforma top.
+- La UI de sincronización vive sin montar en `components/venta/PlatformSyncPanel.tsx`.
 
 ### Lista de Deseos
+- «Ya lo compré»: pasa el deseo al armario (prerrellena nombre, precio de compra, notas y foto) y lo quita de la lista.
 - CRUD con preview automático de URL (microlink.io).
 - Múltiples listas con colores personalizables.
 
@@ -72,11 +81,6 @@
 
 ### Pinterest (pausado)
 - La API denegó el permiso. El código está comentado (ruta, `usePinterest`, función `pinterest-token`, migración 0018) para retomarlo si se concede.
-
-### Stats de ventas
-- Dashboard: total ganado, invertido, neto recuperado.
-- Prenda con mejor margen. Plataforma más eficaz (Wallapop vs Vinted).
-- Necesita: campo `purchase_price` opcional en `clothes`.
 
 ### Stats avanzadas del calendario
 - Prendas no usadas en X días → sugerencia de mover a Baúl.

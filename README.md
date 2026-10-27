@@ -38,8 +38,8 @@ src/
   lib/          funciones puras sin React (fáciles de testear)
   types/        tipos del esquema
 supabase/
-  migrations/   0001…0030, numeradas e idempotentes (RLS + GRANTs explícitos)
-  functions/    Edge Functions: suggest-outfit, daily-outfits, chat-stylist (+ _shared/)
+  migrations/   0001…0031, numeradas e idempotentes (RLS + GRANTs explícitos)
+  functions/    Edge Functions: suggest-outfit, daily-outfits, chat-stylist, delete-account (+ _shared/)
 docs/           ARCHITECTURE, CODE_STYLE y ADRs (decisiones de diseño)
 ```
 
@@ -84,7 +84,7 @@ Ejecuta **en orden** los archivos de `supabase/migrations/` en el SQL Editor (o 
 ```bash
 supabase link --project-ref <TU_REF>
 supabase secrets set GROQ_API_KEY=<tu clave de Groq>
-supabase functions deploy suggest-outfit daily-outfits chat-stylist
+supabase functions deploy suggest-outfit daily-outfits chat-stylist delete-account
 ```
 
 Si cambias de dominio, actualiza `APP_ORIGIN` en `supabase/functions/_shared/cors.ts`.

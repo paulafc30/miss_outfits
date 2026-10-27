@@ -12,7 +12,7 @@ export default function Privacidad() {
           <p className="text-muted">
             Miss Outfits es una aplicación personal de gestión de armario (registro de prendas,
             outfits, calendario de looks y venta de ropa de segunda mano) desarrollada y operada
-            por Desarrollos Ferava. No es un servicio comercial abierto al público: el acceso está
+            por Ferava Software. No es un servicio comercial abierto al público: el acceso está
             restringido a la persona propietaria de la cuenta.
           </p>
         </section>

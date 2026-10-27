@@ -68,6 +68,8 @@ export interface Clothe {
   on_wallapop: boolean
   on_vinted: boolean
   price: number | null
+  /** Lo que costó la prenda (opcional); sirve para calcular el margen al venderla. */
+  purchase_price: number | null
   sold_at: string | null
   listed_at: string | null
   brand: string | null

@@ -19,7 +19,7 @@ import BodyTypeCard from '@/components/profile/BodyTypeCard'
 import FeedbackModal from '@/components/profile/FeedbackModal'
 import type { Profile as ProfileType } from '@/types/database'
 
-type Field = 'username' | 'email' | 'password' | null
+type Field = 'username' | 'email' | 'password' | 'delete' | null
 
 export default function Profile() {
   const { user } = useAuth()
@@ -140,7 +140,7 @@ export default function Profile() {
   }
 
   async function saveUsername(value: string) {
-    if (!user) return { error: 'Sin sesion' }
+    if (!user) return { error: 'Sin sesión' }
     try {
       await updateProfile.mutateAsync({ username: value })
       setUsername(value)
@@ -159,7 +159,7 @@ export default function Profile() {
   async function savePassword(value: string) {
     const { error } = await supabase.auth.updateUser({ password: value })
     if (error) return { error: error.message }
-    showToast('ok', 'Contrasena actualizada')
+    showToast('ok', 'Contraseña actualizada')
   }
 
   async function saveMeasurements(patch: Partial<ProfileType>) {
@@ -171,11 +171,28 @@ export default function Profile() {
     }
   }
 
+  async function deleteAccount(value: string) {
+    if (value.trim().toUpperCase() !== 'ELIMINAR') return { error: 'Escribe ELIMINAR para confirmar.' }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return { error: 'No hay sesión activa' }
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: { confirm: 'ELIMINAR' },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (error) return { error: 'No se pudo eliminar la cuenta. Inténtalo de nuevo.' }
+      if (data?.error) return { error: data.error as string }
+      await supabase.auth.signOut()
+    } catch (err) {
+      return { error: getErrorMessage(err, 'No se pudo eliminar la cuenta.') }
+    }
+  }
+
   async function handleSignOut() {
     const ok = await confirm({
-      title: 'Cerrar sesion',
-      message: 'Tendras que volver a iniciar sesion para acceder a tu armario.',
-      confirmText: 'Cerrar sesion',
+      title: 'Cerrar sesión',
+      message: 'Tendrás que volver a iniciar sesión para acceder a tu armario.',
+      confirmText: 'Cerrar sesión',
       destructive: true,
     })
     if (!ok) return
@@ -217,7 +234,7 @@ export default function Profile() {
       <SettingsSection title="Cuenta">
         <SettingsRow icon={User}  label="Nombre"     value={username || 'Sin nombre'} onClick={() => setEditing('username')} />
         <SettingsRow icon={Mail}  label="Email"      value={email}                    onClick={() => setEditing('email')} />
-        <SettingsRow icon={Lock}  label="Contrasena" value="........"                  onClick={() => setEditing('password')} />
+        <SettingsRow icon={Lock}  label="Contraseña" value="••••••••"                  onClick={() => setEditing('password')} />
         <SettingsRow icon={Ruler} label="Medidas y tallas" value={profile?.bust_cm ? 'Configuradas' : 'Sin configurar'} onClick={() => setMeasurementsOpen(true)} />
         {avatarUrl && (
           <SettingsRow icon={Trash2} iconAccent="rose" label="Quitar foto de perfil" onClick={handleAvatarRemove} chevron={false} />
@@ -248,20 +265,24 @@ export default function Profile() {
           icon={MessageCircle}
           iconAccent="brand"
           label="Sugerencias y fallos"
-          value="Cuentanos"
+          value="Cuéntanos"
           onClick={() => setFeedbackOpen(true)}
         />
       </SettingsSection>
 
       <SettingsSection title="Acerca de">
-        <SettingsRow icon={Sparkles} label="Version" value="0.2.0" chevron={false} />
-        <SettingsRow icon={Info}     label="Politica de privacidad" onClick={() => window.open('/privacidad', '_blank')} />
-        <SettingsRow icon={Info}     label="Terminos de servicio" onClick={() => window.open('/terminos', '_blank')} />
+        <SettingsRow icon={Sparkles} label="Versión" value="0.2.0" chevron={false} />
+        <SettingsRow icon={Info}     label="Política de privacidad" onClick={() => window.open('/privacidad', '_blank')} />
+        <SettingsRow icon={Info}     label="Términos de servicio" onClick={() => window.open('/terminos', '_blank')} />
       </SettingsSection>
 
       <div className="card overflow-hidden">
-        <SettingsRow icon={LogOut} label="Cerrar sesion" destructive onClick={handleSignOut} chevron={false} />
+        <SettingsRow icon={LogOut} label="Cerrar sesión" destructive onClick={handleSignOut} chevron={false} />
       </div>
+
+      <SettingsSection title="Zona de peligro" description="Eliminar tu cuenta borra de forma permanente tu armario, outfits, fotos y datos. No se puede deshacer.">
+        <SettingsRow icon={Trash2} iconAccent="rose" label="Eliminar cuenta" destructive onClick={() => setEditing('delete')} chevron={false} />
+      </SettingsSection>
 
       <p className="text-center text-xs text-muted pb-2">
         Desarrollado por{' '}
@@ -286,18 +307,27 @@ export default function Profile() {
         label="Nuevo email"
         type="email"
         initialValue={email}
-        hint="Te enviaremos un correo de confirmacion al nuevo email."
+        hint="Te enviaremos un correo de confirmación al nuevo email."
         onSave={saveEmail}
       />
       <EditFieldModal
         open={editing === 'password'}
         onClose={() => setEditing(null)}
-        title="Cambiar contrasena"
-        label="Nueva contrasena"
+        title="Cambiar contraseña"
+        label="Nueva contraseña"
         type="password"
-        placeholder="Minimo 6 caracteres"
+        placeholder="Mínimo 6 caracteres"
         minLength={6}
         onSave={savePassword}
+      />
+      <EditFieldModal
+        open={editing === 'delete'}
+        onClose={() => setEditing(null)}
+        title="Eliminar cuenta"
+        label="Escribe ELIMINAR para confirmar"
+        placeholder="ELIMINAR"
+        hint="Se borrarán para siempre tu armario, outfits, fotos y datos de la cuenta."
+        onSave={deleteAccount}
       />
       <MeasurementsModal
         open={measurementsOpen}

@@ -188,7 +188,7 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
               )
             })}
           </div>
-          {closet.length === 0 && <p className="text-sm text-muted">No hay prendas en tu armario aun.</p>}
+          {closet.length === 0 && <p className="text-sm text-muted">No hay prendas en tu armario aún.</p>}
         </div>
 
         <CompleteTheLook suggestions={completeLookSuggestions} onSelect={toggle} />

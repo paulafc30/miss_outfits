@@ -49,7 +49,7 @@ export function useDailyOutfits() {
     queryKey: ['daily-outfits', today],
     queryFn: async (): Promise<DailyOutfit[]> => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No hay sesion activa')
+      if (!session) throw new Error('No hay sesión activa')
 
       const { lat, lon } = await getGeolocation()
 
@@ -103,7 +103,7 @@ export function useRateDailyOutfit() {
       dislikedItemIds?: string[]
     }) => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No hay sesion activa')
+      if (!user) throw new Error('No hay sesión activa')
 
       const { error } = await supabase
         .from('daily_outfit_suggestions')

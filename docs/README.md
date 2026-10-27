@@ -68,7 +68,7 @@ src/
 ├── lib/               # supabase, theme, description, bodyType, sizeFit, options, calendar, images...
 ├── store/             # search (Zustand)
 └── types/             # database.ts (Profile, Clothe, Outfit, Wear, Inspiration...)
-supabase/migrations/   # 30 migraciones numeradas 0001-0030, idempotentes
+supabase/migrations/   # 31 migraciones numeradas 0001-0031, idempotentes
 public/                # favicon, iconos PWA, manifest, service worker, vercel.json
 docs/                  # esta carpeta
 ```

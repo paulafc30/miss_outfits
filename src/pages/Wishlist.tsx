@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, ExternalLink, ImageOff, Heart, FolderCog } from 'lucide-react'
-import { useWishlist } from '@/hooks/useWishlist'
+import { Plus, ExternalLink, ImageOff, Heart, FolderCog, ShoppingBag } from 'lucide-react'
+import { useWishlist, useDeleteWishlistItem } from '@/hooks/useWishlist'
 import { useWishlistFolders } from '@/hooks/useWishlistFolders'
 import { useSearchStore } from '@/store/search'
 import WishlistForm, { WishlistPrefill } from '@/components/wishlist/WishlistForm'
 import WishlistFoldersManager from '@/components/wishlist/WishlistFoldersManager'
+import ClotheForm, { type ClothePrefill } from '@/components/armario/ClotheForm'
+import { useConfirm } from '@/components/shared/ConfirmModal'
+import { Link } from 'react-router-dom'
 import EmptyState from '@/components/shared/EmptyState'
 import { cx, formatPrice, safeHttpUrl } from '@/lib/utils'
 import { consumeSharedPayload } from '@/lib/sharedItem'
@@ -20,6 +23,34 @@ export default function Wishlist() {
   const [foldersOpen, setFoldersOpen] = useState(false)
   const [editing, setEditing] = useState<WishlistItem | null>(null)
   const [prefill, setPrefill] = useState<WishlistPrefill | undefined>(undefined)
+  // "Ya lo compré": el deseo se convierte en una prenda del armario
+  const [bought, setBought] = useState<WishlistItem | null>(null)
+  const [boughtPrefill, setBoughtPrefill] = useState<ClothePrefill | undefined>(undefined)
+  const [justAdded, setJustAdded] = useState(false)
+  const deleteItem = useDeleteWishlistItem()
+  const confirm = useConfirm()
+
+  useEffect(() => {
+    if (!justAdded) return
+    const t = window.setTimeout(() => setJustAdded(false), 6000)
+    return () => window.clearTimeout(t)
+  }, [justAdded])
+
+  async function markBought(it: WishlistItem) {
+    const ok = await confirm({
+      title: 'Ya lo compré',
+      message: `Vas a pasar "${it.name ?? 'este artículo'}" a tu armario. Podrás completar categoría, talla, color… y se quitará de tu lista de deseos al guardarlo.`,
+      confirmText: 'Pasar al armario',
+    })
+    if (!ok) return
+    setBoughtPrefill({
+      name: it.name ?? undefined,
+      notes: it.notes ?? undefined,
+      purchasePrice: it.price ?? undefined,
+      imageUrl: it.image_url ?? undefined,
+    })
+    setBought(it)
+  }
 
   // Consumir share apuntado a wishlist y abrir el formulario con auto-preview
   useEffect(() => {
@@ -138,10 +169,16 @@ export default function Wishlist() {
                   <p className="text-xs text-muted">{formatPrice(it.price)}</p>
                 </div>
               </button>
-              <a href={safeHttpUrl(it.url) ?? undefined} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 text-xs text-brand-700 hover:bg-brand-50 py-2 border-t border-line-soft">
-                <ExternalLink className="w-3.5 h-3.5" /> Ver
-              </a>
+              <div className="grid grid-cols-2 border-t border-line-soft">
+                <a href={safeHttpUrl(it.url) ?? undefined} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1 text-xs text-brand-700 hover:bg-brand-50 py-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> Ver
+                </a>
+                <button type="button" onClick={() => void markBought(it)}
+                  className="flex items-center justify-center gap-1 text-xs text-brand-700 hover:bg-brand-50 py-2 border-l border-line-soft">
+                  <ShoppingBag className="w-3.5 h-3.5" /> Ya lo compré
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -154,6 +191,24 @@ export default function Wishlist() {
         prefill={editing ? undefined : prefill}
       />
       <WishlistFoldersManager open={foldersOpen} onClose={() => setFoldersOpen(false)} />
+
+      <ClotheForm
+        open={!!bought}
+        onClose={() => { setBought(null); setBoughtPrefill(undefined) }}
+        prefill={boughtPrefill}
+        onSaved={() => {
+          if (bought) deleteItem.mutate(bought.id)
+          setJustAdded(true)
+        }}
+      />
+
+      {justAdded && (
+        <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 card px-4 py-2.5 text-sm flex items-center gap-3 shadow-lift">
+          <span>Pasado al armario ✓</span>
+          <Link to="/armario" className="font-semibold text-brand-700 hover:underline">Verlo</Link>
+          <button type="button" onClick={() => setJustAdded(false)} className="text-muted hover:text-ink" aria-label="Cerrar">×</button>
+        </div>
+      )}
     </div>
   )
 }

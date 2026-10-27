@@ -5,6 +5,9 @@ import CompleteTheLook from '@/components/armario/CompleteTheLook'
 import { useChangeClothesStatus, useClothes } from '@/hooks/useClothes'
 import { useCategories } from '@/hooks/useCategories'
 import { useLocations } from '@/hooks/useLocations'
+import { useClotheWearStats, useCreateWear } from '@/hooks/useWears'
+import { useAuth } from '@/hooks/useAuth'
+import { formatISODate } from '@/lib/calendar'
 import { useProfile } from '@/hooks/useProfile'
 import { colorHexByName } from '@/components/shared/ColorPicker'
 import { useConfirm } from '@/components/shared/ConfirmModal'
@@ -13,7 +16,7 @@ import { checkFit, FIT_META } from '@/lib/sizeFit'
 import { cx, getErrorMessage } from '@/lib/utils'
 import { categoryTypeMap, suggestCompleteLook } from '@/lib/completeLook'
 import type { Clothe } from '@/types/database'
-import { Pencil, Tag, Ruler, MapPin } from 'lucide-react'
+import { Pencil, Tag, Ruler, MapPin, CalendarCheck, Check } from 'lucide-react'
 
 export default function ClotheDetail({
   open,
@@ -35,6 +38,28 @@ export default function ClotheDetail({
   const { data: closet = [] } = useClothes(['closet'])
   const { data: categories = [] } = useCategories()
   const { data: locations = [] } = useLocations()
+  const { user } = useAuth()
+  const { data: wearStats } = useClotheWearStats(clothe?.id)
+  const createWear = useCreateWear()
+  const todayISO = formatISODate(new Date())
+  const wornToday = wearStats?.lastDate === todayISO
+
+  async function markWornToday() {
+    if (!user || !clothe || wornToday) return
+    try {
+      await createWear.mutateAsync({ user_id: user.id, clothe_id: clothe.id, wear_date: todayISO, planned: false })
+    } catch (err) {
+      setMoveError(getErrorMessage(err, 'No se pudo registrar el uso'))
+    }
+  }
+
+  function formatLastWorn(iso: string): string {
+    const days = Math.round((new Date(todayISO).getTime() - new Date(iso).getTime()) / 86_400_000)
+    if (days <= 0) return 'hoy'
+    if (days === 1) return 'ayer'
+    if (days < 30) return `hace ${days} días`
+    return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
   const [galleryUrls, setGalleryUrls] = useState<string[]>([])
   const [moveError, setMoveError] = useState<string | null>(null)
   const [moving, setMoving] = useState(false)
@@ -163,6 +188,28 @@ export default function ClotheDetail({
             <strong>No se pudo mover:</strong> {moveError}
           </div>
         )}
+
+        {/* Uso de la prenda */}
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-soft px-3 py-2.5">
+          <div className="text-sm">
+            <p className="font-medium text-ink">
+              {wearStats && wearStats.count > 0
+                ? `Llevada ${wearStats.count} ${wearStats.count === 1 ? 'vez' : 'veces'}`
+                : 'Aún sin estrenar en la app'}
+            </p>
+            {wearStats?.lastDate && (
+              <p className="text-xs text-muted">Última vez: {formatLastWorn(wearStats.lastDate)}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => void markWornToday()}
+            disabled={wornToday || createWear.isPending}
+            className="btn-secondary shrink-0 text-xs"
+          >
+            {wornToday ? <><Check className="w-4 h-4" /> Registrada hoy</> : <><CalendarCheck className="w-4 h-4" /> Me la puse hoy</>}
+          </button>
+        </div>
 
         {/* Acción primaria: editar la prenda */}
         <button onClick={onEdit} className="btn-primary w-full">

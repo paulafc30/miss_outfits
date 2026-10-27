@@ -83,7 +83,7 @@ export function useCreateSeason() {
   return useMutation({
     mutationFn: async ({ name, icon, color }: { name: string; icon: string; color: string }) => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No hay sesion activa')
+      if (!user) throw new Error('No hay sesión activa')
       const { data, error } = await supabase
         .from('seasons')
         .insert({ user_id: user.id, name, icon, color, is_global: false })

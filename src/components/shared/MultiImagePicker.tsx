@@ -374,7 +374,7 @@ export default function MultiImagePicker({
         onChange={(e) => e.target.files && addFiles(e.target.files)}
       />
 
-      {/* Anadir por URL */}
+      {/* Añadir por URL */}
       {urlMode ? (
         <div className="flex gap-2">
           <input

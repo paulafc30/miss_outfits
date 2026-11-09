@@ -32,6 +32,9 @@
   }
 
   html, body, #root { height: 100%; }
+  /* Evita que un elemento más ancho que la pantalla ensanche la página en móvil
+     (los navegadores móviles la "encogen" y parece la versión de escritorio). */
+  html, body { max-width: 100%; overflow-x: clip; }
   html { -webkit-tap-highlight-color: transparent; color-scheme: light; }
   html.dark { color-scheme: dark; }
 

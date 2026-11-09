@@ -25,6 +25,7 @@ export default function Profile() {
   const { user } = useAuth()
   const [theme, setTheme] = useTheme()
   const confirm = useConfirm()
+  const [showDiag, setShowDiag] = useState(false)
   const { data: profile } = useProfile()
   const updateProfile = useUpdateProfile()
 
@@ -271,7 +272,12 @@ export default function Profile() {
       </SettingsSection>
 
       <SettingsSection title="Acerca de">
-        <SettingsRow icon={Sparkles} label="Versión" value="0.2.0" chevron={false} />
+        <SettingsRow icon={Sparkles} label="Versión" value="0.2.0" chevron={false} onClick={() => setShowDiag((v) => !v)} />
+        {showDiag && (
+          <p className="px-4 py-3 text-xs text-muted break-words">
+            Diagnóstico de pantalla: página {window.innerWidth}×{window.innerHeight} px · pantalla {window.screen.width}×{window.screen.height} · dpr {window.devicePixelRatio} · {window.matchMedia('(display-mode: standalone)').matches ? 'app instalada' : 'navegador'} · {navigator.userAgent}
+          </p>
+        )}
         <SettingsRow icon={Info}     label="Política de privacidad" onClick={() => window.open('/privacidad', '_blank')} />
         <SettingsRow icon={Info}     label="Términos de servicio" onClick={() => window.open('/terminos', '_blank')} />
       </SettingsSection>

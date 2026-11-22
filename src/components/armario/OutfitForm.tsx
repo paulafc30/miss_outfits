@@ -177,7 +177,7 @@ export default function OutfitForm({ open, onClose, outfit }: { open: boolean; o
                     isSelected ? 'border-brand-600' : 'border-transparent')}
                 >
                   {c.image_url ? (
-                    <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
                   ) : <div className="w-full h-full bg-surface-soft" />}
                   {isSelected && (
                     <div className="absolute inset-0 bg-brand-700/30 flex items-center justify-center">

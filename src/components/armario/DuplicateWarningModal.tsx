@@ -31,7 +31,7 @@ export default function DuplicateWarningModal({
             <li key={clothe.id} className="card p-2 flex items-center gap-3">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-surface-soft shrink-0">
                 {clothe.image_url && (
-                  <img src={clothe.image_url} alt="" className="w-full h-full object-cover" />
+                  <img decoding="async" loading="lazy" src={clothe.image_url} alt="" className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="min-w-0 flex-1">

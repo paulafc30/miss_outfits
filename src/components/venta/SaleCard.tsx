@@ -47,7 +47,7 @@ export default function SaleCard({ clothe, onEdit }: { clothe: Clothe; onEdit: (
       <button onClick={onEdit} className="block w-full text-left">
         <div className="aspect-square bg-surface-soft">
           {clothe.image_url ? (
-            <img src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
+            <img decoding="async" loading="lazy" src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-8 h-8 text-muted/50" /></div>
           )}

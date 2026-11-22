@@ -4,6 +4,8 @@
  * da hashes a poca distancia. No reconoce la misma prenda fotografiada de otra forma.
  */
 
+import { decodeImage } from './imageOrientation'
+
 const CACHE_KEY = 'miss-outfits:img-hash-v1'
 const memory = new Map<string, string>()
 
@@ -58,9 +60,9 @@ function hashFromBitmap(bmp: ImageBitmap | HTMLImageElement): string {
 /** Hash de un File (foto recién elegida). */
 export async function hashFile(file: Blob): Promise<string | null> {
   try {
-    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    const bmp = await decodeImage(file)
     const h = hashFromBitmap(bmp)
-    bmp.close?.()
+    if ('close' in bmp) bmp.close()
     return h
   } catch {
     return null

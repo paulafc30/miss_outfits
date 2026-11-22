@@ -22,7 +22,7 @@ import { isImageUrl } from '@/lib/sharedItem'
 import { useConfirm } from '@/components/shared/ConfirmModal'
 import { extractDominantColorName } from '@/lib/colorExtraction'
 import type { Clothe, ClothesStatus, ClotheImage } from '@/types/database'
-import { Loader2, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react'
+import { ChevronDown, Loader2, Pencil, Plus, Tag, Trash2, Wand2, X } from 'lucide-react'
 
 const ALL_STATUSES: ClothesStatus[] = ['closet', 'baul', 'en_venta', 'vendida', 'archivada']
 
@@ -96,6 +96,8 @@ export default function ClotheForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [descOpen, setDescOpen] = useState(false)
+  // Bloque plegable de venta/compra: cerrado salvo que ya haya datos de venta
+  const [saleOpen, setSaleOpen] = useState(false)
   const [fetchingPreview, setFetchingPreview] = useState(false)
   const [suggestedColor, setSuggestedColor] = useState<string | null>(null)
   const [suggestionDismissed, setSuggestionDismissed] = useState(false)
@@ -119,6 +121,7 @@ export default function ClotheForm({
       setNotes(clothe.notes ?? '')
       setPrice(clothe.price ? String(clothe.price) : '')
       setPurchasePrice(clothe.purchase_price != null ? String(clothe.purchase_price) : '')
+      setSaleOpen(!!clothe.price || clothe.purchase_price != null || clothe.status !== 'closet')
       supabase
         .from('clothe_images')
         .select('*')
@@ -137,6 +140,10 @@ export default function ClotheForm({
       setNotes(prefill?.notes ?? '')
       setPrice(prefill?.price != null ? String(prefill.price) : '')
       setPurchasePrice(prefill?.purchasePrice != null ? String(prefill.purchasePrice) : '')
+      setSaleOpen(
+        prefill?.price != null || prefill?.purchasePrice != null || !!prefill?.platform ||
+        (prefill?.forceStatus ?? defaultStatus) !== 'closet',
+      )
       setOriginalImages([])
       const sharedUrl = prefill?.url ?? ''
       if (prefill?.imageUrl) {
@@ -157,7 +164,7 @@ export default function ClotheForm({
             // No pisamos lo que ya venía en prefill
             if (preview.title && !prefill?.name) setName(preview.title)
             if (preview.description && !prefill?.notes) setNotes(preview.description)
-            if (preview.price != null && prefill?.price == null) setPrice(String(preview.price))
+            if (preview.price != null && prefill?.price == null) { setPrice(String(preview.price)); setSaleOpen(true) }
           })
           .finally(() => setFetchingPreview(false))
       } else {
@@ -618,15 +625,36 @@ export default function ClotheForm({
           <input className="input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="verano, casual" />
         </div>
 
-        <div>
-          <label className="label">Precio de venta (opcional)</label>
-          <input className="input" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="20.00" />
-        </div>
-
-        <div>
-          <label className="label">Precio de compra (opcional)</label>
-          <input className="input" type="number" step="0.01" min="0" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} placeholder="35.00" />
-          <p className="text-[11px] text-muted mt-1">Lo que te costó. Sirve para calcular tu margen cuando la vendas.</p>
+        {/* Venta y compra: plegado por defecto para no saturar el formulario */}
+        <div className="rounded-xl border border-line overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setSaleOpen((v) => !v)}
+            aria-expanded={saleOpen}
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold text-ink bg-surface-soft hover:bg-surface transition"
+          >
+            <Tag className="w-4 h-4 text-brand-700" />
+            <span className="flex-1 text-left">Venta y compra</span>
+            {(price || purchasePrice) && !saleOpen && (
+              <span className="text-[11px] font-medium text-muted">
+                {[price && `Venta ${price} €`, purchasePrice && `Compra ${purchasePrice} €`].filter(Boolean).join(' · ')}
+              </span>
+            )}
+            <ChevronDown className={cx('w-4 h-4 text-muted transition-transform', saleOpen && 'rotate-180')} />
+          </button>
+          {saleOpen && (
+            <div className="p-3.5 space-y-3 border-t border-line">
+              <div>
+                <label className="label">Precio de venta (opcional)</label>
+                <input className="input" type="number" inputMode="decimal" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="20.00" />
+              </div>
+              <div>
+                <label className="label">Precio de compra (opcional)</label>
+                <input className="input" type="number" inputMode="decimal" step="0.01" min="0" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} placeholder="35.00" />
+                <p className="text-[11px] text-muted mt-1">Lo que te costó. Sirve para calcular tu margen cuando la vendas.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>

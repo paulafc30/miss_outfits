@@ -30,7 +30,7 @@ function OutfitCollage({ items }: { items: DailyOutfit['items'] }) {
           style={{ backgroundColor: CELL_BG }}
         >
           {/* object-contain (no cover): se ve la prenda entera, sin recortarla */}
-          <img
+          <img decoding="async" loading="lazy"
             src={item.image_url}
             alt={item.name}
             className="max-w-full max-h-full object-contain rounded-[8px]"
@@ -155,12 +155,12 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
 
       {/* Cabecera: ocasión + clima */}
       <div className="absolute top-3 inset-x-3 flex items-center justify-between">
-        <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-white/20 backdrop-blur-sm border border-white/30 px-2.5 py-1 rounded-full">
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-white/30 border border-white/30 px-2.5 py-1 rounded-full">
           <Icon className="w-3.5 h-3.5" />
           {meta.label}
         </span>
         {outfit.weather && (
-          <span className="text-[11px] font-medium text-white bg-white/20 backdrop-blur-sm border border-white/30 px-2 py-1 rounded-full">
+          <span className="text-[11px] font-medium text-white bg-white/30 border border-white/30 px-2 py-1 rounded-full">
             {outfit.weather.split(',')[0]}
           </span>
         )}
@@ -174,7 +174,7 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
         </div>
 
         {naming ? (
-          <div className="space-y-2 bg-black/40 backdrop-blur-sm rounded-xl p-2.5 border border-white/20">
+          <div className="space-y-2 bg-black/55 rounded-xl p-2.5 border border-white/20">
             <p className="text-[11px] text-white/90 font-medium">Nombre del outfit</p>
             <input
               type="text"
@@ -204,7 +204,7 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
             </div>
           </div>
         ) : flagging ? (
-          <div className="space-y-2 bg-black/40 backdrop-blur-sm rounded-xl p-2.5 border border-white/20">
+          <div className="space-y-2 bg-black/55 rounded-xl p-2.5 border border-white/20">
             <p className="text-[11px] text-white/90 font-medium">¿Qué prenda no encajaba? (opcional)</p>
             <div className="flex flex-wrap gap-1.5">
               {outfit.items.map((item) => {
@@ -252,7 +252,7 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
               disabled={rateOutfit.isPending}
               title="Me gusta este outfit"
               className={cx(
-                'flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 px-3 border transition backdrop-blur-sm',
+                'flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 px-3 border transition',
                 outfit.rating === 'positive'
                   ? 'bg-green-500/80 border-green-300/60 text-white'
                   : 'bg-white/15 border-white/30 text-white hover:bg-white/25'
@@ -266,7 +266,7 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
               disabled={rateOutfit.isPending}
               title="No me gusta este outfit"
               className={cx(
-                'flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 px-3 border transition backdrop-blur-sm',
+                'flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 px-3 border transition',
                 outfit.rating === 'negative'
                   ? 'bg-red-500/80 border-red-300/60 text-white'
                   : 'bg-white/15 border-white/30 text-white hover:bg-white/25'
@@ -278,7 +278,7 @@ function DailyOutfitCard({ outfit }: { outfit: DailyOutfit }) {
               onClick={handleSaveClick}
               disabled={saved || createOutfit.isPending}
               className={cx(
-                'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 border transition backdrop-blur-sm',
+                'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-xl py-2 border transition',
                 saved
                   ? 'bg-green-500/20 border-green-300/40 text-white cursor-default'
                   : 'bg-white/15 border-white/30 text-white hover:bg-white/25'

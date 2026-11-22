@@ -46,9 +46,36 @@ export async function readExifOrientation(file: File): Promise<number> {
   return 1
 }
 
+/**
+ * Decodifica una imagen aplicando su orientación EXIF, con respaldo para navegadores que no
+ * aceptan opciones en createImageBitmap (Safari antiguo, Firefox en algunos casos): entonces se
+ * usa un <img>, que todos los navegadores modernos orientan solos.
+ */
+export async function decodeImage(blob: Blob): Promise<ImageBitmap | HTMLImageElement> {
+  if ('createImageBitmap' in window) {
+    try {
+      return await createImageBitmap(blob, { imageOrientation: 'from-image' })
+    } catch {
+      // continúa al respaldo
+    }
+  }
+  const url = URL.createObjectURL(blob)
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'))
+      img.src = url
+    })
+  } finally {
+    // el <img> ya está cargado: se puede liberar la URL
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+}
+
 /** Gira la imagen 90° (clockwise=true: horario) y devuelve un File nuevo. */
 export async function rotateImage(file: File, clockwise = true): Promise<File> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  const bitmap = await decodeImage(file)
   const canvas = document.createElement('canvas')
   canvas.width = bitmap.height
   canvas.height = bitmap.width
@@ -57,7 +84,7 @@ export async function rotateImage(file: File, clockwise = true): Promise<File> {
   ctx.translate(canvas.width / 2, canvas.height / 2)
   ctx.rotate(((clockwise ? 90 : -90) * Math.PI) / 180)
   ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2)
-  bitmap.close?.()
+  if ('close' in bitmap) bitmap.close()
 
   const keepPng = /png/i.test(file.type)
   const type = keepPng ? 'image/png' : 'image/jpeg'

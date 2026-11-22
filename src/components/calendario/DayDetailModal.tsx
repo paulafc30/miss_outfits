@@ -85,7 +85,7 @@ export default function DayDetailModal({
                 )}>
                   <div className="w-12 h-12 rounded-lg bg-surface-soft overflow-hidden flex-shrink-0">
                     {img ? (
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img decoding="async" loading="lazy" src={img} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted/70">
                         {isOutfit ? <Folder className="w-5 h-5" /> : <ImageOff className="w-5 h-5" />}
@@ -155,7 +155,7 @@ export default function DayDetailModal({
                 <button key={c.id} onClick={() => addClothe(c.id)}
                   className="aspect-square rounded-xl overflow-hidden bg-surface-soft relative hover:ring-2 hover:ring-brand-500 transition">
                   {c.image_url ? (
-                    <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted/70">
                       <ImageOff className="w-5 h-5" />

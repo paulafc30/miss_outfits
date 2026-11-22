@@ -315,7 +315,7 @@ export default function Armario() {
                 <button key={o.id} onClick={() => { setOutfitEditing(o); setOutfitFormOpen(true) }} className="card overflow-hidden text-left">
                   <div className="aspect-square grid grid-cols-2 gap-px bg-surface-soft">
                     {previews.length > 0 ? previews.map((src, i) => (
-                      <img key={i} src={src} alt="" className="w-full h-full object-cover" />
+                      <img decoding="async" loading="lazy" key={i} src={src} alt="" className="w-full h-full object-cover" />
                     )) : <div className="col-span-2 row-span-2 flex items-center justify-center text-muted/50">Sin prendas</div>}
                   </div>
                   <div className="p-2.5">

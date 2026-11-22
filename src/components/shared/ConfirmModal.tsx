@@ -105,7 +105,7 @@ function ConfirmModalUI({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center px-3 sm:px-6 animate-fade-in">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
       <div className="relative bg-surface rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm overflow-hidden shadow-2xl border border-line-soft animate-scale-in safe-bottom">
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-start gap-3">

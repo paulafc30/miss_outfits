@@ -64,7 +64,7 @@ function SeasonFolder({
               {seasonClothes.map((clothe) => (
                 <div key={clothe.id} className="aspect-square rounded-xl overflow-hidden bg-surface-soft relative">
                   {clothe.image_url ? (
-                    <img src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Shirt className="w-6 h-6 text-muted/40" />

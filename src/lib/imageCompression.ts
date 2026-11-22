@@ -1,9 +1,9 @@
-import { readExifOrientation } from './imageOrientation'
+import { decodeImage, readExifOrientation } from './imageOrientation'
 
 /**
  * Comprime una imagen en el navegador antes de subirla:
- * - Redimensiona si el lado más largo supera `maxSize` (por defecto 1600 px).
- * - Re-encoda como JPEG con calidad `quality` (por defecto 0.82).
+ * - Redimensiona si el lado más largo supera `maxSize` (por defecto 1280 px).
+ * - Re-encoda como JPEG con calidad `quality` (por defecto 0.8).
  * - Si la imagen ya pesa poco o el resultado no mejora, devuelve el original.
  * - Si por cualquier razón la compresión falla, devuelve el original (fallback seguro).
  */
@@ -11,8 +11,8 @@ export async function compressImage(
   file: File,
   opts: { maxSize?: number; quality?: number } = {}
 ): Promise<File> {
-  const maxSize = opts.maxSize ?? 1600
-  const quality = opts.quality ?? 0.82
+  const maxSize = opts.maxSize ?? 1280
+  const quality = opts.quality ?? 0.8
 
   // Si la foto trae una orientación EXIF distinta de la normal (típico al hacerla con la
   // cámara en vertical), hay que re-dibujarla para "hornear" el giro en los píxeles.
@@ -31,6 +31,7 @@ export async function compressImage(
     const ctx = canvas.getContext('2d')
     if (!ctx) return file
     ctx.drawImage(bitmap, 0, 0, width, height)
+    if ('close' in bitmap) bitmap.close()
 
     const blob: Blob | null = await new Promise((resolve) => {
       canvas.toBlob((b) => resolve(b), 'image/jpeg', quality)
@@ -54,25 +55,5 @@ function fitInside(w: number, h: number, max: number) {
 }
 
 async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
-  // createImageBitmap es mucho más rápido si está disponible
-  if ('createImageBitmap' in window) {
-    try {
-      return await createImageBitmap(file, { imageOrientation: 'from-image' })
-    } catch {
-      // continúa al fallback
-    }
-  }
-  // Fallback con HTMLImageElement
-  const dataUrl: string = await new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result as string)
-    r.onerror = reject
-    r.readAsDataURL(file)
-  })
-  return await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = dataUrl
-  })
+  return decodeImage(file)
 }

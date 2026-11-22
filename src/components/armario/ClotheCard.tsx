@@ -14,7 +14,7 @@ export default function ClotheCard({
     <button onClick={onClick} className="card overflow-hidden text-left hover:shadow-md transition group">
       <div className="aspect-square bg-surface-soft relative">
         {clothe.image_url ? (
-          <img src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" loading="lazy" />
+          <img decoding="async" src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-8 h-8 text-muted/50" /></div>
         )}

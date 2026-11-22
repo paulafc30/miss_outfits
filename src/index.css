@@ -34,7 +34,7 @@
   html, body, #root { height: 100%; }
   /* Evita que un elemento más ancho que la pantalla ensanche la página en móvil
      (los navegadores móviles la "encogen" y parece la versión de escritorio). */
-  html, body { max-width: 100%; overflow-x: clip; }
+  html, body { max-width: 100%; overflow-x: hidden; overflow-x: clip; }
   html { -webkit-tap-highlight-color: transparent; color-scheme: light; }
   html.dark { color-scheme: dark; }
 
@@ -45,7 +45,6 @@
     background-image:
       radial-gradient(80% 50% at 0% 0%, rgba(255, 87, 113, 0.10) 0%, transparent 60%),
       radial-gradient(60% 40% at 100% 0%, rgba(255, 150, 130, 0.06) 0%, transparent 50%);
-    background-attachment: fixed;
   }
   .dark body {
     background-image:
@@ -98,7 +97,8 @@
     @apply rounded-2xl border shadow-soft;
     background-color: rgb(var(--c-surface) / 0.75);
     border-color: rgb(var(--c-line) / 0.6);
-    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(160%) blur(12px);
+    backdrop-filter: saturate(160%) blur(12px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 

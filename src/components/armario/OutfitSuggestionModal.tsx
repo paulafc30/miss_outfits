@@ -143,7 +143,7 @@ export default function OutfitSuggestionModal({ onClose }: { onClose: () => void
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
     <div className="card p-6 space-y-4 w-full max-w-lg max-h-[90vh] overflow-y-auto">

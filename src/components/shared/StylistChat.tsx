@@ -142,7 +142,7 @@ function FeedbackButtons({
 function ClotheZoom({ clothe, onClose }: { clothe: ReferencedClothe; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/75"
       onClick={onClose}
     >
       <div
@@ -380,7 +380,7 @@ export default function StylistChat() {
 
       {open && (
         <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
 
           <div className="relative w-full sm:max-w-md h-[85vh] sm:h-[600px] bg-page rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
 

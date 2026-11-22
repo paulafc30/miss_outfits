@@ -45,7 +45,7 @@ export default function PlannedTodayBanner() {
             <li key={w.id} className="flex items-center gap-3 p-2 rounded-xl bg-surface">
               <div className="w-12 h-12 rounded-lg bg-surface-soft overflow-hidden shrink-0">
                 {img ? (
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img decoding="async" loading="lazy" src={img} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted/70">
                     {isOutfit ? <Folder className="w-5 h-5" /> : <ImageOff className="w-5 h-5" />}

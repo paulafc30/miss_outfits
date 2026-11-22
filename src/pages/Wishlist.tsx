@@ -159,7 +159,7 @@ export default function Wishlist() {
               <button onClick={() => { setEditing(it); setFormOpen(true) }} className="block w-full text-left">
                 <div className="aspect-square bg-surface-soft">
                   {it.image_url ? (
-                    <img src={it.image_url} alt={it.name ?? ''} className="w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={it.image_url} alt={it.name ?? ''} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-8 h-8 text-muted/50" /></div>
                   )}

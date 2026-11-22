@@ -28,7 +28,7 @@ export default function CompleteTheLook({
           >
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-surface-soft">
               {clothe.image_url ? (
-                <img src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
+                <img decoding="async" loading="lazy" src={clothe.image_url} alt={clothe.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted/40 text-[10px] text-center px-1">
                   Sin foto

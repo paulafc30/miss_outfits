@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ImagePlus, X, Star, Link as LinkIcon, Plus, Loader2, Camera, Sparkles, Undo2, Info } from 'lucide-react'
+import { ImagePlus, X, Star, Link as LinkIcon, Plus, Loader2, Camera, Sparkles, Undo2, Info, RotateCw } from 'lucide-react'
 import { cx, getErrorMessage } from '@/lib/utils'
 import { compressImage } from '@/lib/imageCompression'
 import { usePrettify } from '@/hooks/usePrettify'
+import { rotateImage } from '@/lib/imageOrientation'
 
 /**
  * Estado de cada imagen en el picker.
@@ -123,6 +124,49 @@ export default function MultiImagePicker({
       onChange(next)
     } catch (e) {
       setError(getErrorMessage(e, 'Error al aplicar el retoque'))
+    } finally {
+      setPrettifyingIdx(null)
+    }
+  }
+
+  /** Gira la foto 90° en sentido horario (por si la cámara la guardó de lado). */
+  async function rotateAt(index: number) {
+    const img = images[index]
+    if (!img) return
+    setPrettifyingIdx(index) // reutilizamos el overlay de "procesando"
+    setError(null)
+    try {
+      let source: File
+      if (img.kind === 'new-file') {
+        source = img.file
+      } else {
+        const res = await fetch(previewOf(img))
+        if (!res.ok) throw new Error('fetch')
+        const blob = await res.blob()
+        source = new File([blob], 'foto.jpg', { type: blob.type || 'image/jpeg' })
+      }
+      const rotated = await rotateImage(source, true)
+      const preview = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(r.result as string)
+        r.onerror = reject
+        r.readAsDataURL(rotated)
+      })
+      const next = [...images]
+      next[index] = {
+        kind: 'new-file',
+        tempId: crypto.randomUUID(),
+        file: rotated,
+        preview,
+        previous: img.previous ?? img,
+      }
+      onChange(next)
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message === 'fetch'
+          ? 'No se pudo girar esa foto (el enlace no permite descargarla).'
+          : getErrorMessage(e, 'No se pudo girar la imagen'),
+      )
     } finally {
       setPrettifyingIdx(null)
     }
@@ -262,7 +306,7 @@ export default function MultiImagePicker({
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                   <span className="text-white text-[10px] font-semibold uppercase tracking-wide">
-                    Retocando…
+                    Procesando…
                   </span>
                   {prettifyProgress > 0 && prettifyProgress < 1 && (
                     <span className="text-white/80 text-[10px] tabular-nums">
@@ -301,16 +345,25 @@ export default function MultiImagePicker({
                       type="button"
                       onClick={() => undoPrettifyAt(i)}
                       disabled={prettifyingIdx !== null}
-                      className="absolute bottom-1 left-1 flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-black/70 text-white hover:bg-black/85 transition shadow-lift"
+                      className="absolute bottom-1 left-1 flex items-center p-1.5 rounded-full bg-black/70 text-white hover:bg-black/85 transition shadow-lift"
                       title="Volver al original"
                     >
                       <Undo2 className="w-3 h-3" />
-                      <span className="text-[9px] font-semibold uppercase tracking-wide">Original</span>
+                      <span className="sr-only">Volver al original</span>
                     </button>
                   )}
 
                   {/* Botón Prettify — abre portal para evitar overflow-hidden */}
-                  <div className="absolute bottom-1 right-1">
+                  <div className="absolute bottom-1 right-1 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => rotateAt(i)}
+                      disabled={prettifyingIdx !== null}
+                      className="p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition"
+                      title="Girar 90°"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => prettifyMenuIdx === i ? closePrettifyMenu() : openPrettifyMenu(i, e)}

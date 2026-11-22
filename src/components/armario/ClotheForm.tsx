@@ -9,7 +9,10 @@ import { useCategories } from '@/hooks/useCategories'
 import { useLocations, useCreateLocation, useRenameLocation, useDeleteLocation } from '@/hooks/useLocations'
 import { useSeasons, useClotheSeasonIds, useSetClotheSeasons } from '@/hooks/useSeasons'
 import { useBrands } from '@/hooks/useBrands'
-import { useCreateClothe, useDeleteClothe, useUpdateClothe } from '@/hooks/useClothes'
+import { useClothes, useCreateClothe, useDeleteClothe, useUpdateClothe } from '@/hooks/useClothes'
+import DuplicateWarningModal from '@/components/armario/DuplicateWarningModal'
+import { findDuplicates, type DuplicateMatch } from '@/lib/duplicates'
+import { hashFile, hashUrl } from '@/lib/imageHash'
 import { uploadImage, deleteImage } from '@/lib/images'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,6 +23,8 @@ import { useConfirm } from '@/components/shared/ConfirmModal'
 import { extractDominantColorName } from '@/lib/colorExtraction'
 import type { Clothe, ClothesStatus, ClotheImage } from '@/types/database'
 import { Loader2, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react'
+
+const ALL_STATUSES: ClothesStatus[] = ['closet', 'baul', 'en_venta', 'vendida', 'archivada']
 
 export interface ClothePrefill {
   name?: string
@@ -66,6 +71,8 @@ export default function ClotheForm({
   const updateMut = useUpdateClothe()
   const deleteMut = useDeleteClothe()
   const confirm = useConfirm()
+  const { data: allClothes = [] } = useClothes(ALL_STATUSES)
+  const [dupMatches, setDupMatches] = useState<DuplicateMatch[]>([])
 
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
@@ -237,8 +244,55 @@ export default function ClotheForm({
     }
   }
 
+  /** Busca prendas ya guardadas que se parezcan a la que se está creando. */
+  async function checkDuplicates(): Promise<DuplicateMatch[]> {
+    try {
+      const cover = images[0]
+      const coverHash = cover
+        ? cover.kind === 'new-file' ? await hashFile(cover.file) : await hashUrl(previewOf(cover))
+        : null
+
+      // Solo calculamos el hash de las fotos de prendas que ya parecen candidatas por texto
+      // o, si la prenda nueva tiene foto, de todas (con tope de tiempo para no bloquear el guardado).
+      const hashes = new Map<string, string>()
+      if (coverHash) {
+        const withPhoto = allClothes.filter((c) => c.image_url)
+        const work = (async () => {
+          for (let i = 0; i < withPhoto.length; i += 6) {
+            const batch = withPhoto.slice(i, i + 6)
+            const res = await Promise.all(batch.map((c) => hashUrl(c.image_url!)))
+            batch.forEach((c, j) => { const h = res[j]; if (h) hashes.set(c.id, h) })
+          }
+        })()
+        await Promise.race([work, new Promise((r) => setTimeout(r, 8000))])
+      }
+
+      return findDuplicates(
+        { name, brand, categoryId, colors: colorNames, imageHash: coverHash },
+        allClothes,
+        hashes,
+      )
+    } catch {
+      return [] // ante cualquier fallo, no bloqueamos el guardado
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!user) return
+    if (!clothe && dupMatches.length === 0) {
+      setSubmitting(true); setError(null)
+      const matches = await checkDuplicates()
+      if (matches.length > 0) {
+        setDupMatches(matches)
+        setSubmitting(false)
+        return
+      }
+    }
+    await doSave()
+  }
+
+  async function doSave() {
     if (!user) return
     setSubmitting(true); setError(null)
     try {
@@ -617,6 +671,14 @@ export default function ClotheForm({
           </button>
         </div>
       </form>
+
+      <DuplicateWarningModal
+        open={dupMatches.length > 0}
+        matches={dupMatches}
+        saving={submitting}
+        onCancel={() => setDupMatches([])}
+        onSaveAnyway={async () => { await doSave(); setDupMatches([]) }}
+      />
 
       <DescriptionModal
         open={descOpen}

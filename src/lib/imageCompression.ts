@@ -1,3 +1,5 @@
+import { readExifOrientation } from './imageOrientation'
+
 /**
  * Comprime una imagen en el navegador antes de subirla:
  * - Redimensiona si el lado más largo supera `maxSize` (por defecto 1600 px).
@@ -12,8 +14,12 @@ export async function compressImage(
   const maxSize = opts.maxSize ?? 1600
   const quality = opts.quality ?? 0.82
 
+  // Si la foto trae una orientación EXIF distinta de la normal (típico al hacerla con la
+  // cámara en vertical), hay que re-dibujarla para "hornear" el giro en los píxeles.
+  const needsRotation = (await readExifOrientation(file)) !== 1
+
   // No comprimir si ya es pequeña (< 400 KB) salvo formatos pesados
-  if (file.size < 400 * 1024 && /jpeg|jpg|webp/i.test(file.type)) return file
+  if (!needsRotation && file.size < 400 * 1024 && /jpeg|jpg|webp/i.test(file.type)) return file
 
   try {
     const bitmap = await loadBitmap(file)
@@ -32,7 +38,7 @@ export async function compressImage(
     if (!blob) return file
 
     // Si por la razón que sea el comprimido pesa más que el original, no lo usamos
-    if (blob.size >= file.size) return file
+    if (!needsRotation && blob.size >= file.size) return file
 
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'foto'
     return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() })
@@ -51,7 +57,7 @@ async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
   // createImageBitmap es mucho más rápido si está disponible
   if ('createImageBitmap' in window) {
     try {
-      return await createImageBitmap(file)
+      return await createImageBitmap(file, { imageOrientation: 'from-image' })
     } catch {
       // continúa al fallback
     }

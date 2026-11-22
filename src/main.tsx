@@ -7,6 +7,20 @@ import { ConfirmProvider } from './components/shared/ConfirmModal'
 import { applyTheme, getStoredTheme } from './lib/theme'
 import './index.css'
 
+// Si el navegador/app instalada arranca en "modo escritorio" (página de ~980 px en un móvil de
+// ~400 px), intenta forzar el ancho real del dispositivo. Solo actúa en pantallas táctiles
+// estrechas cuando la página es mucho más ancha que la pantalla.
+try {
+  const screenW = Math.min(window.screen.width, window.screen.height)
+  if ('ontouchstart' in window && screenW > 0 && screenW < 600 && window.innerWidth > screenW * 1.5) {
+    document
+      .querySelector('meta[name="viewport"]')
+      ?.setAttribute('content', `width=${screenW}, initial-scale=1, minimum-scale=1, viewport-fit=cover`)
+  }
+} catch {
+  // sin acceso a screen: no hacemos nada
+}
+
 // Aplicar tema antes de renderizar para evitar parpadeo (flash of unstyled theme)
 applyTheme(getStoredTheme())
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import Modal from '@/components/shared/Modal'
 import MultiImagePicker, { PickerImage, previewOf } from '@/components/shared/MultiImagePicker'
 import ColorPicker, { type ColorSelection } from '@/components/shared/ColorPicker'
@@ -71,6 +72,7 @@ export default function ClotheForm({
   const updateMut = useUpdateClothe()
   const deleteMut = useDeleteClothe()
   const confirm = useConfirm()
+  const qc = useQueryClient()
   const { data: allClothes = [] } = useClothes(ALL_STATUSES)
   const [dupMatches, setDupMatches] = useState<DuplicateMatch[]>([])
 
@@ -338,6 +340,10 @@ export default function ClotheForm({
 
       await syncImages(clotheId, user.id)
       await setClotheSeasonsM.mutateAsync({ clotheId, seasonIds: selectedSeasonIds })
+      // Las fotos se suben DESPUÉS de crear la prenda (y un trigger de la base de datos rellena
+      // su portada). Hay que refrescar ahora, si no el listado se queda con la prenda sin foto
+      // hasta recargar la página.
+      await qc.invalidateQueries({ queryKey: ['clothes'] })
       onSaved?.()
       onClose()
     } catch (err) {
@@ -695,7 +701,9 @@ export default function ClotheForm({
             </button>
           )}
           <button type="submit" disabled={submitting || !name.trim()} className="btn-primary flex-1 justify-center">
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : clothe ? 'Guardar cambios' : 'Añadir prenda'}
+            {submitting
+              ? <><Loader2 className="w-4 h-4 animate-spin" />{images.some((i) => i.kind === 'new-file') ? 'Subiendo fotos…' : 'Guardando…'}</>
+              : clothe ? 'Guardar cambios' : 'Añadir prenda'}
           </button>
         </div>
       </form>

@@ -1,5 +1,5 @@
 import Modal from '@/components/shared/Modal'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ImageOff } from 'lucide-react'
 import { STATUS_LABELS } from '@/lib/utils'
 import type { DuplicateMatch } from '@/lib/duplicates'
 
@@ -30,8 +30,12 @@ export default function DuplicateWarningModal({
           {matches.map(({ clothe, reasons }) => (
             <li key={clothe.id} className="card p-2 flex items-center gap-3">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-surface-soft shrink-0">
-                {clothe.image_url && (
-                  <img decoding="async" loading="lazy" src={clothe.image_url} alt="" className="w-full h-full object-cover" />
+                {clothe.image_url ? (
+                  <img src={clothe.image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageOff className="w-6 h-6 text-muted/50" />
+                  </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
